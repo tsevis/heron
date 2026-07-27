@@ -1,0 +1,182 @@
+# HERON material table (CLAUDE.md §7) — the crown-jewel data asset.
+#
+# Curated by hand. NEVER auto-generate over this file. Each entry describes how
+# a material behaves across every Instrument, so one edit here lifts every
+# engine at once.
+#
+# Fields per material:
+#   emissivity_lwir : 8-14 um emissivity in [0,1]  (skin ~0.98, polished metal ~0.1)
+#   lwir_behavior   : emissive | reflective | mixed
+#                     reflective/mixed materials composite a blurred reflection
+#                     of the thermal environment instead of their own emission.
+#   temp_prior_c    : {mean, sigma} baseline temperature in Celsius, plus
+#                     optional named `zones` (for skin: tearduct/ear/neck hot,
+#                     nose cold) as additive offsets in Celsius.
+#   xray_class      : air | fabric | soft | dense | bone | metal
+#   nir             : foliage_glow | skin_translucent | dye_transparent | neutral
+#   kirlian_activity: corona-seeding propensity in [0,1] (high curvature + this)
+#   transmissivity_lwir: [0,1] how much of the WARM BODY BEHIND a surface shows
+#                     through it. Fabric and hair are partially transparent to
+#                     thermal radiation, so skin glows through them (the
+#                     semi-transparent tutu of the ballerina reference).
+#
+# temp_prior_c is expressed relative to an ambient/scene baseline the physics
+# engine sets; treat means as "typical surface temp under mild indoor ambient".
+
+version: 1
+
+materials:
+  skin:
+    emissivity_lwir: 0.98
+    lwir_behavior: emissive
+    temp_prior_c: {mean: 35.5, sigma: 1.5}
+    zones:            # additive offsets (deg C) applied over facial/body heat map
+      tearduct: +2.5
+      ear:      +2.0
+      neck:     +1.5
+      forehead: +1.0
+      cheek:    +0.5
+      nose:     -3.0
+      lips:     +0.5
+    xray_class: soft
+    nir: skin_translucent
+    kirlian_activity: 0.7
+    transmissivity_lwir: 0.1
+
+  hair:
+    emissivity_lwir: 0.95
+    lwir_behavior: emissive
+    # Hair is a strong thermal insulator and reads markedly COOLER than skin in
+    # real thermograms (the purple-vs-orange separation in reference frames).
+    temp_prior_c: {mean: 24.0, sigma: 2.0}
+    xray_class: fabric
+    nir: neutral
+    kirlian_activity: 0.9   # tips ignite corona readily
+    transmissivity_lwir: 0.35   # scalp heat glows through strands
+
+  fabric:            # generic cotton / clothing
+    emissivity_lwir: 0.90
+    lwir_behavior: emissive
+    temp_prior_c: {mean: 28.0, sigma: 2.5}   # insulating layer over warm core
+    xray_class: fabric
+    nir: dye_transparent
+    kirlian_activity: 0.3
+    transmissivity_lwir: 0.55
+
+  wool:
+    emissivity_lwir: 0.90
+    lwir_behavior: emissive
+    temp_prior_c: {mean: 29.5, sigma: 2.5}   # thicker insulation, cooler surface
+    xray_class: fabric
+    nir: neutral
+    kirlian_activity: 0.3
+    transmissivity_lwir: 0.45
+
+  leather:
+    emissivity_lwir: 0.92
+    lwir_behavior: mixed
+    temp_prior_c: {mean: 28.0, sigma: 2.0}
+    xray_class: soft
+    nir: neutral
+    kirlian_activity: 0.2
+    transmissivity_lwir: 0.15
+
+  wood:
+    emissivity_lwir: 0.90
+    lwir_behavior: emissive
+    temp_prior_c: {mean: 21.0, sigma: 2.0}
+    xray_class: fabric
+    nir: neutral
+    kirlian_activity: 0.4
+    transmissivity_lwir: 0.0
+
+  glass:
+    emissivity_lwir: 0.92   # high emissivity but OPAQUE + reflective in LWIR
+    lwir_behavior: reflective
+    temp_prior_c: {mean: 20.0, sigma: 1.5}
+    xray_class: dense
+    nir: neutral
+    kirlian_activity: 0.1
+    transmissivity_lwir: 0.0
+
+  metal_polished:
+    emissivity_lwir: 0.10
+    lwir_behavior: reflective   # mirror-like: shows the scene's thermal reflection
+    temp_prior_c: {mean: 20.0, sigma: 1.0}
+    xray_class: metal
+    nir: neutral
+    kirlian_activity: 0.6
+    transmissivity_lwir: 0.0
+
+  metal_matte:
+    emissivity_lwir: 0.35
+    lwir_behavior: mixed
+    temp_prior_c: {mean: 20.5, sigma: 1.5}
+    xray_class: metal
+    nir: neutral
+    kirlian_activity: 0.5
+    transmissivity_lwir: 0.0
+
+  water:
+    emissivity_lwir: 0.96   # emissive value high, but body is opaque + reflective
+    lwir_behavior: reflective  # mirror-water reflecting the thermal environment — the money case
+    temp_prior_c: {mean: 18.0, sigma: 1.0}
+    xray_class: soft
+    nir: dark        # water absorbs NIR strongly -> reads very dark
+    kirlian_activity: 0.2
+    transmissivity_lwir: 0.0
+
+  foliage:
+    emissivity_lwir: 0.96
+    lwir_behavior: emissive
+    temp_prior_c: {mean: 22.0, sigma: 3.0}
+    xray_class: fabric
+    nir: foliage_glow   # the Wood effect
+    kirlian_activity: 0.6
+    transmissivity_lwir: 0.15
+
+  stone:
+    emissivity_lwir: 0.92
+    lwir_behavior: emissive
+    temp_prior_c: {mean: 19.0, sigma: 2.5}
+    xray_class: dense
+    nir: neutral
+    kirlian_activity: 0.1
+    transmissivity_lwir: 0.0
+
+  sky:
+    emissivity_lwir: 0.90
+    lwir_behavior: emissive
+    temp_prior_c: {mean: -20.0, sigma: 5.0}   # very cold
+    xray_class: air
+    nir: dark        # NIR scatters far less than blue -> clear sky reads dark
+    kirlian_activity: 0.0
+    transmissivity_lwir: 0.0
+
+  paper:
+    emissivity_lwir: 0.93
+    lwir_behavior: emissive
+    temp_prior_c: {mean: 21.0, sigma: 1.5}
+    xray_class: fabric
+    nir: dye_transparent
+    kirlian_activity: 0.3
+    transmissivity_lwir: 0.25
+
+  plastic:
+    emissivity_lwir: 0.94
+    lwir_behavior: emissive
+    temp_prior_c: {mean: 22.0, sigma: 2.0}
+    xray_class: soft
+    nir: neutral
+    kirlian_activity: 0.2
+    transmissivity_lwir: 0.12
+
+  # Fallback when Layer A cannot label a region (also the --no-ai default).
+  unknown:
+    emissivity_lwir: 0.92
+    lwir_behavior: emissive
+    temp_prior_c: {mean: 24.0, sigma: 4.0}
+    xray_class: soft
+    nir: neutral
+    kirlian_activity: 0.2
+    transmissivity_lwir: 0.1

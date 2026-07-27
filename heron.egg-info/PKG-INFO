@@ -1,0 +1,247 @@
+Metadata-Version: 2.4
+Name: heron
+Version: 0.2.0
+Summary: Physically-grounded radiometric imaging engine (thermography, X-ray, Kirlian, Schlieren, night vision, spectroscopy)
+License-Expression: MIT
+Requires-Python: >=3.11
+Description-Content-Type: text/markdown
+License-File: LICENSE
+Requires-Dist: numpy>=1.26
+Requires-Dist: opencv-python>=4.9
+Requires-Dist: pillow>=10.0
+Requires-Dist: scipy>=1.11
+Requires-Dist: pyyaml>=6.0
+Requires-Dist: typer>=0.12
+Provides-Extra: ai
+Requires-Dist: torch>=2.2; extra == "ai"
+Requires-Dist: transformers>=4.40; extra == "ai"
+Requires-Dist: onnxruntime>=1.17; extra == "ai"
+Requires-Dist: mediapipe>=0.10; extra == "ai"
+Provides-Extra: web
+Requires-Dist: fastapi>=0.110; extra == "web"
+Requires-Dist: uvicorn>=0.29; extra == "web"
+Provides-Extra: dev
+Requires-Dist: pytest>=8.0; extra == "dev"
+Dynamic: license-file
+
+# HERON
+
+**Turns an ordinary photograph into an image that looks captured by an
+instrument that sees beyond human vision** — a thermal camera, an X-ray
+fluoroscope, a Kirlian plate, a night-vision tube. Not a color filter: a
+physics engine. It estimates what's really in the frame (skin, hair, fabric,
+metal, glass), removes the photograph's lighting, and re-synthesizes the image
+from what things **are**, not from how they happened to be lit.
+
+> Outputs are **artistic simulation** — not real thermography, medical imaging,
+> or measurement. No feature, name, or doc in this project claims otherwise;
+> the X-ray "skeleton" is stylized-anatomical, never diagnostic.
+
+<p align="center">
+  <img src="gallery/renders/hero_before_after.png" width="820" alt="A portrait under colored disco lighting, next to Heron's thermogram of it">
+  <br><sub>Source (multi-directional stage lighting) → Heron thermograph. The colored light is gone — what's left is <em>synthesized internal emission</em>, the one thing a gradient-map filter cannot do.</sub>
+</p>
+
+---
+
+## Quick start
+
+```bash
+git clone https://github.com/tsevis/heron.git && cd heron
+python3 -m venv .venv && .venv/bin/pip install -e . && .venv/bin/pip install -r requirements-ai.txt
+./heron.sh
+```
+
+`heron.sh` starts the local web app and opens your browser automatically —
+that's the whole setup. (`Heron.command` does the same by double-click in
+Finder.) Drop a photo in, pick an instrument, turn the dials.
+
+Prefer the command line? See [CLI usage](#cli-usage) below.
+
+---
+
+## The instrument rack
+
+Eight physically-distinct engines, one shared pipeline. Pick an instrument the
+way you'd pick a piece of lab equipment — each has its own physical dials and
+preset shelf, but all of them share the same scene understanding, the same
+Oklab palette engine, and the same sensor/optics layer underneath.
+
+<p align="center">
+  <img src="gallery/renders/instrument_rack.png" width="900" alt="Eight renders of different subjects, one per Heron instrument">
+</p>
+
+| Instrument | Physics | What it's good at |
+|---|---|---|
+| **Thermograph** | emission (temperature field) | portraits — the flagship, hair/skin/fabric each hold their own heat |
+| **Fluoroscope** | attenuation (Beer–Lambert) | luminous translucent bodies, stylized skeletal core |
+| **Intensifier Tube** | amplification (photon/Poisson) | night vision — phosphor grain, halos, honeycomb faceplate |
+| **NIR Camera** | reflectance (material-driven) | foliage bursts white/red (the Wood effect), waxy skin |
+| **Kirlian Plate** | synthetic corona growth | aura + dielectric-breakdown streamers from hair/fingertips |
+| **Schlieren Bench** | density gradient | knife-edge relief, rising heat plumes |
+| **Lumen Chamber** | bioluminescent emission | translucent glow, subsurface scatter into darkness |
+| **Spectroscope** | spectral decomposition | prism dispersion, diffraction-grating smear |
+
+One more look, because it's the clearest proof the physics is material-aware
+and not just a palette swap — the same NIR engine, run with materials on:
+
+<p align="center">
+  <img src="gallery/renders/john_nir.png" width="320" alt="Aerochrome infrared render — foliage glowing red, pale skin">
+  <br><sub>NIR Camera, Aerochrome preset — chlorophyll in the plant behind him reads bright red (the real Wood effect), because Heron knows it's <em>foliage</em>, not because it's bright in the photo.</sub>
+</p>
+
+---
+
+## Physics → neural finish (optional, hybrid look)
+
+The procedural physics engine gets the *temperature field, geometry, and
+materials* right — that's the deterministic core, and it works fully offline
+with zero AI dependencies (`--no-ai`). For the closest match to a real
+microbolometer capture, an optional finishing pass runs the physics render
+back through a local depth-conditioned diffusion model (SDXL, or any
+self-contained checkpoint you already have in ComfyUI) so the fine sensor
+texture — individual hair strands, skin grain — reads as photographed rather
+than painted. The physics field is always the control signal; the network
+adds texture, it never invents geometry.
+
+This is entirely optional and entirely local — see [Neural finishers](#neural-finishers-optional) below.
+
+---
+
+## Architecture — a fixed 4-layer stack
+
+Every Instrument above is a **YAML configuration** of these four layers, never
+a separate codebase — that's what let eight physically different engines ship
+without eight rewrites of the sensor/optics/palette code.
+
+| Layer | Package | Role |
+|---|---|---|
+| **A · Scene Understanding** | `heron/scene` | depth, normals, matte, de-lit albedo, saliency, materials → the **Radiance Graph** (cached per photo) |
+| **B · Physics** | `heron/physics` | the per-instrument signal field — emission, attenuation, amplification, reflectance, corona, density-gradient, biolum, spectral |
+| **C · Sensor & Optics** | `heron/sensor` | bloom, FPN + NETD noise, AGC, MSX edges, hex faceplate, scanlines, chromatic aberration, palette (Oklab) |
+| **D · Art Direction** | `heron/art` | saliency emphasis, structure-tensor directional bloom, Poisson detail fusion (`materiality` slider) |
+
+The engine (`heron/`) is UI-agnostic and 32-bit-float / linear-light
+throughout. Layer A — the AI part (depth, matting, SAM 3 materials) — is
+**always skippable**; every instrument still produces a sane result with
+`--no-ai`.
+
+<details>
+<summary><b>Why de-lighting matters (the one-paragraph thesis)</b></summary>
+
+<br>A photograph's brightness encodes *external illumination* — a face lit
+from the left stays bright on the left. A real thermogram encodes *internal
+emission* — a face is warm symmetrically, hottest at the tear ducts and ears,
+coolest at the nose tip, regardless of which way the room light was pointed.
+Heron estimates and removes the photograph's lighting, then rebuilds warmth
+from a material-aware temperature field instead. That's the whole difference
+between Heron and a gradient-map Instagram filter, and it's why the hero image
+above has no trace of the disco lighting it started with.
+</details>
+
+---
+
+## CLI usage
+
+```bash
+# render a thermogram — classical path, no AI models needed
+python cli.py render photo.jpg -i thermograph -p flir_field -o out.png --no-ai
+
+# the inner-glow presets
+python cli.py render photo.jpg -p ember_glow      -o ember.png --no-ai
+python cli.py render photo.jpg -p violet_embrace  -o violet.png --no-ai
+
+# any other instrument
+python cli.py render photo.jpg -i fluoroscope -p cold_blue_nude -o xray.png --ai
+python cli.py render photo.jpg -i kirlian -p fingertip_storm -o corona.png --ai
+
+# physical dial overrides + reproducible noise + graph dump
+python cli.py render photo.jpg -s layerC.netd_mk=25 -s layerB.core_c=36 --seed 7 --dump-graph
+
+# inspect the Radiance Graph, palettes, local model registry
+python cli.py graph photo.jpg --out-dir channels/
+python cli.py palette list
+python scripts/smoke_models.py
+```
+
+32 presets across 8 instruments — run `python cli.py render --help` or open
+the web app's preset dropdown to see them with descriptions.
+
+---
+
+## Web app — the Optical Bench
+
+```bash
+./heron.sh                     # starts the server, opens the browser
+./heron.sh --port=8090         # use another port
+```
+
+Drop a photo, pick a **Camera** (all 8 instruments, each with its own dial
+set), turn the physical dials — heat window, transparency, rim glow, 3-D
+shape, hair detail, sensor noise, palette — and render. Real progress bar
+(the neural stage reports actual diffusion steps, not a spinner). Hold-click
+the result to A/B against the source. Download button, and a **⚙ settings**
+menu: a save folder with a native macOS **Browse…** picker, 8/16-bit output,
+working resolution, neural/draft defaults.
+
+First render of a new photo builds its scene graph once (~40 s: depth, matte,
+SAM 3 materials). After that, physics re-renders in a couple of seconds —
+turn a dial, see the result, no AI reload.
+
+---
+
+## Neural finishers (optional)
+
+Post-passes over Heron's physical output, in `neural/` — deliberately
+**outside** the engine, so `heron/` itself never imports them and stays
+deterministic and offline. The app's Model dropdown lists every self-contained
+checkpoint it finds in your local ComfyUI install and is honest about which
+ones it can actually run:
+
+| Module | What it does |
+|---|---|
+| `neural/controlnet_finisher.py` | SDXL + depth-ControlNet img2img, driving local checkpoints directly via diffusers |
+| `neural/zimage.py` | Z-Image Turbo, assembled entirely from on-disk components (transformer + text encoder + VAE) — no model download |
+| `neural/style_transfer.py` | Gatys/AdaIN neural style transfer, with semantic region masking |
+| `neural/cyclegan.py` / `neural/pix2pixhd.py` | unpaired/paired RGB↔thermal GAN architectures — built and tested, but **untrained**: they need a real thermal-image dataset (`neural/datasets.py` points at KAIST/FLIR-ADAS) before they produce anything |
+
+```bash
+python -m neural.run controlnet render.png photo.jpg --out finished.png
+python -m neural.run datasets            # where to get real thermal training data
+```
+
+---
+
+## Testing
+
+```bash
+.venv/bin/python -m pytest -q          # 185 tests
+```
+
+The **all-techniques matrix** (`tests/test_all_instruments.py`) is the
+regression net for the whole rack: it renders every instrument × every preset
+end-to-end and asserts each is valid, non-degenerate, seed-deterministic, and
+free of AI dependencies on the classical path.
+
+```bash
+python scripts/contact_sheet.py photo.jpg --out contact.png   # visual regression, all techniques on one photo
+python scripts/acceptance_sheet.py                            # source | physics | hybrid
+python scripts/render_gallery.py                              # rebuilds the images used in this README
+```
+
+---
+
+## Project status
+
+Phase 0 (thermograph proof, classical + full AI Layer A) and Phase 1 (the
+complete 8-instrument rack + Layer D art direction) are done. The web app
+(Phase 2) is built and in daily use. Not yet started: the Photoshop UXP
+plugin (Phase 3), video/batch (Phase 4), and training the GAN finishers on
+real thermal data.
+
+## Do not
+
+Do not treat any Heron output as real thermography, medical imaging, or
+measurement. This project does not add cloud API calls to the engine, does
+not commit model weights, and does not touch other projects' model folders
+except read-only.

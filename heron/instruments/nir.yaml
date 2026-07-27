@@ -1,0 +1,56 @@
+# NIR Camera — near-infrared reflectance photography (CLAUDE.md §1.2, §4).
+# Material-table-driven: foliage glows (Wood effect), skin waxy, skies/water dark.
+
+engine: nir
+description: Near-infrared camera — the Wood effect, waxy skin, dark skies.
+
+layerA:            # Scene Understanding — materials drive the NIR response
+  delight_strength: 0.0   # NIR is real reflected light, do not de-light
+  depth_tier: fast
+  segment_materials: true  # needs materials for foliage/skin/sky differentiation
+
+layerB:            # Physics — NIR reflectance (see physics/nir.py: NIRParams)
+  skin_smooth: 0.6
+  contrast: 1.0
+
+layerC:            # Sensor & Optics — IR film
+  palette: white_hot
+  bloom_strength: 0.25
+  bloom_threshold: 0.7
+  bloom_halo: 0.08
+  mtf_sigma_frac: 0.0006
+  vignette: 0.15
+  false_color: ""    # set to "aerochrome" for false-color EIR
+  saturation: 1.3
+  dither_lsb: 1.2
+
+presets:
+  wood_effect_grove:
+    description: Classic black-and-white infrared — foliage glows white, skies dark.
+    layerB:
+      contrast: 1.15
+    layerC:
+      palette: white_hot
+      bloom_strength: 0.35
+      bloom_halo: 0.12
+      vignette: 0.2
+
+  infrared_portrait:
+    description: Infrared portrait — waxy translucent skin, smooth and pale.
+    layerB:
+      skin_smooth: 0.85
+      contrast: 1.05
+    layerC:
+      palette: white_hot
+      bloom_strength: 0.2
+      vignette: 0.18
+
+  aerochrome:
+    description: Kodak Aerochrome false-color EIR — healthy foliage burns red.
+    layerB:
+      contrast: 1.1
+    layerC:
+      false_color: aerochrome
+      saturation: 1.4
+      bloom_strength: 0.2
+      vignette: 0.15

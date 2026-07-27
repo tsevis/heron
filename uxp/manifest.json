@@ -1,0 +1,58 @@
+{
+  "manifestVersion": 5,
+  "id": "com.tsevis.heron",
+  "name": "Heron",
+  "version": "0.1.0",
+  "main": "index.html",
+  "host": {
+    "app": "PS",
+    "minVersion": "24.0.0"
+  },
+  "entrypoints": [
+    {
+      "type": "panel",
+      "id": "heron.panel",
+      "label": {
+        "default": "Heron"
+      },
+      "icons": [
+        {
+          "width": 23,
+          "height": 23,
+          "path": "icons/icon-23.png",
+          "scale": [1],
+          "theme": ["darkest", "dark", "medium", "lightest", "light"]
+        },
+        {
+          "width": 46,
+          "height": 46,
+          "path": "icons/icon-46.png",
+          "scale": [2],
+          "theme": ["darkest", "dark", "medium", "lightest", "light"]
+        }
+      ],
+      "minimumSize": {
+        "width": 230,
+        "height": 260
+      },
+      "maximumSize": {
+        "width": 900,
+        "height": 2400
+      },
+      "preferredDockedSize": {
+        "width": 320,
+        "height": 900
+      },
+      "preferredFloatingSize": {
+        "width": 380,
+        "height": 900
+      }
+    }
+  ],
+  "requiredPermissions": {
+    "localFileSystem": "fullAccess",
+    "network": {
+      "domains": "all"
+    }
+  }
+}

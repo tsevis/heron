@@ -1,0 +1,92 @@
+# Fluoroscope — X-ray / phosphor-screen simulation (CLAUDE.md §1.1, §4).
+# A configuration of the fixed 4-layer stack; Layer B is Beer–Lambert.
+# Stylized-anatomical, never diagnostic (§2.8).
+
+engine: xray
+description: X-ray fluoroscope — luminous translucent body on a phosphor screen.
+
+layerA:            # Scene Understanding (shared with every instrument)
+  delight_strength: 0.9
+  depth_tier: fast
+  segment_materials: true
+
+layerB:            # Physics — Beer–Lambert (see physics/xray.py: XrayParams)
+  thickness_gain: 3.5
+  flesh_floor: 0.12
+  contrast: 0.9
+  depth_thickness: 0.4
+  rim: 0.3
+  skeleton: 0.0
+
+layerC:            # Sensor & Optics — phosphor screen
+  palette: fluoroscope_blue
+  bloom_strength: 0.4
+  bloom_threshold: 0.4
+  bloom_halo: 0.15
+  mtf_sigma_frac: 0.0012
+  quantum_dose: 80.0      # lower = grainier (photon-starved)
+  quantum_strength: 0.5
+  vignette: 0.25
+  dither_lsb: 1.0
+
+layerD:            # Art Direction
+  emphasis_amount: 0.15
+  emphasis_contrast: 0.1
+  # Beer-Lambert thickness comes from a distance transform and depth, both
+  # smooth by construction — without detail fusion the body interior is a
+  # featureless blob (no eye sockets, brows, or skin structure at all).
+  materiality: 0.5
+  detail_sigma: 0.01
+
+presets:
+  cold_blue_nude:
+    description: Cobalt blue nude — cobalt phosphor, translucent luminous flesh.
+    layerB:
+      thickness_gain: 3.2
+      rim: 0.35
+      flesh_floor: 0.14
+      skeleton: 0.45
+    layerC:
+      palette: fluoro
+      bloom_strength: 0.5
+      bloom_halo: 0.2
+      vignette: 0.3
+    layerD:
+      emphasis_amount: 0.25
+      emphasis_contrast: 0.2
+
+  bone_white:
+    description: Radiographic bone-white — high contrast, dense core, low grain.
+    layerB:
+      thickness_gain: 4.5
+      contrast: 1.1
+      rim: 0.2
+      skeleton: 0.6
+    layerC:
+      palette: p43_white
+      quantum_dose: 140.0
+      quantum_strength: 0.35
+      bloom_strength: 0.3
+
+  security_scanner:
+    description: Airport-scanner false color — organics vs. dense objects.
+    layerB:
+      thickness_gain: 3.0
+      rim: 0.15
+    layerC:
+      palette: turbo
+      quantum_dose: 100.0
+      bloom_strength: 0.25
+      vignette: 0.15
+
+  cathedral_glass:
+    description: Cool cathedral-glass fluoroscopy — glowing translucent panes.
+    layerB:
+      thickness_gain: 2.6
+      flesh_floor: 0.18
+      rim: 0.4
+    layerC:
+      palette: arctic
+      bloom_strength: 0.55
+      bloom_halo: 0.25
+      vignette: 0.2

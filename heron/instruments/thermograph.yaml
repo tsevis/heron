@@ -1,0 +1,270 @@
+# Thermograph — LWIR microbolometer simulation (CLAUDE.md §4).
+# A configuration of the fixed 4-layer stack. Presets override these defaults.
+
+engine: thermal
+description: Long-wave infrared thermal camera (microbolometer).
+
+layerA:            # Scene Understanding
+  delight_strength: 0.9
+  depth_tier: fast
+  segment_materials: true   # SAM 3 per-region materials (AI path only)
+
+layerB:            # Physics — thermal field (see physics/thermal.py: ThermalParams)
+  ambient_c: 19.0
+  core_c: 34.0
+  exertion: 0.0
+  emissivity_reflection: 1.0
+  detail: 0.0
+  shape_cooling: 0.12
+  grazing_drop_c: 6.5
+  occlusion_warm_c: 2.6
+  transmission: 1.5
+  diffusion_iters: 14
+  span_min_c: 20.0
+  span_max_c: 37.5
+
+layerC:            # Sensor & Optics
+  palette: ironbow
+  agc_strength: 0.35
+  agc_plateau: 0.02
+  bloom_strength: 0.18
+  bloom_threshold: 0.55
+  bloom_halo: 0.12
+  mtf_sigma_frac: 0.0022
+  sensor_rows: 240      # real detectors are 240/480 rows, then upscaled
+  fpn_amplitude: 0.03
+  fpn_row_weight: 0.5
+  fpn_col_weight: 0.25
+  netd_mk: 60.0
+  msx_opacity: 0.0
+  vignette: 0.15
+  narcissus: 0.05
+  dither_lsb: 1.0
+  furniture: false
+
+layerD:            # Art Direction (§1.6)
+  emphasis_amount: 0.2
+  emphasis_contrast: 0.15
+  dir_bloom: 0.0            # structure-tensor directional bloom (0 = off)
+  dir_bloom_length: 0.012
+  dir_bloom_threshold: 0.55
+  materiality: 0.55        # Poisson detail fusion 0..1 (fabric/hair structure)
+  detail_sigma: 0.01
+
+presets:
+  flir_field:
+    description: Handheld FLIR field unit — Ironbow, MSX edges, visible noise.
+    layerC:
+      palette: ironbow
+      msx_opacity: 0.0
+      furniture: false
+      netd_mk: 50.0
+      sensor_rows: 240
+      agc_strength: 0.8
+
+  lab_radiometer:
+    description: Clean laboratory radiometer — White Hot, low noise, wide span.
+    layerC:
+      palette: white_hot
+      msx_opacity: 0.0
+      netd_mk: 20.0
+      fpn_amplitude: 0.015
+      bloom_strength: 0.2
+      sensor_rows: 0
+    layerD:
+      emphasis_amount: 0.1
+      emphasis_contrast: 0.1
+
+  ember_glow:
+    description: Warm inner-glow portrait — heat rendered as radiance against darkness.
+    layerB:
+      emissivity_reflection: 1.0
+      detail: 0.1
+    layerC:
+      palette: ember
+      msx_opacity: 0.0
+      netd_mk: 25.0
+      fpn_amplitude: 0.02
+      bloom_strength: 0.5
+      bloom_halo: 0.18
+      vignette: 0.28
+      narcissus: 0.0
+    layerD:
+      emphasis_amount: 0.35
+      emphasis_contrast: 0.25
+      dir_bloom: 0.35        # heat streams along hair/limbs
+      materiality: 0.45      # painterly: hair/fabric detail fused in
+
+  violet_embrace:
+    description: High-gain thermogram from the red-violet embrace — cool purple ground, warm figures.
+    layerC:
+      palette: violet
+      msx_opacity: 0.0
+      netd_mk: 30.0
+      bloom_strength: 0.45
+      vignette: 0.25
+    layerD:
+      emphasis_amount: 0.3
+      emphasis_contrast: 0.25
+
+  icon_gold:
+    description: Golden icon-light embrace — warm gold emission on darkness.
+    layerB:
+      detail: 0.1
+    layerC:
+      palette: icon_gold
+      msx_opacity: 0.0
+      netd_mk: 25.0
+      bloom_strength: 0.5
+      bloom_halo: 0.2
+      vignette: 0.3
+      narcissus: 0.0
+    layerD:
+      emphasis_amount: 0.35
+      emphasis_contrast: 0.25
+
+  thermal_ghost:
+    description: Handprint/ghost register — cool scene, warm residual contact (Phase 0 stub).
+    layerB:
+      core_c: 33.0
+    layerC:
+      palette: ironbow
+      msx_opacity: 0.2
+      bloom_strength: 0.3
+
+  translucent_glow:
+    description: User-validated hybrid look — translucent body, glowing core (neural strength 0.52, seed 3).
+    layerB:
+      transmission: 1.5
+      subsurface_rim_c: 1.8
+      grazing_drop_c: 6.5
+      occlusion_warm_c: 2.6
+    layerC:
+      palette: ironbow
+      msx_opacity: 0.0
+
+  fever_screening:
+    description: Airport fever-screening look — tight span, faces blow out hot white.
+    layerB:
+      core_c: 36.5
+      span_min_c: 29.5
+      span_max_c: 38.5
+      transmission: 0.8
+      subsurface_rim_c: 1.0
+    layerC:
+      palette: ironbow
+      netd_mk: 45
+      agc_strength: 0.5
+      sensor_rows: 240
+
+  night_watch_grain:
+    description: Grainy white-hot surveillance — figures burn bright in cold darkness.
+    layerB:
+      ambient_c: 10
+      span_min_c: 12
+      span_max_c: 37
+    layerC:
+      palette: white_hot
+      netd_mk: 85
+      fpn_amplitude: 0.05
+      sensor_rows: 240
+      vignette: 0.3
+      agc_strength: 0.6
+
+  ghost_heat_soft:
+    description: Soft dreamy heat-ghost — deep translucency, everything glows through.
+    layerB:
+      transmission: 2.2
+      subsurface_rim_c: 3.4
+      grazing_drop_c: 4.0
+    layerC:
+      palette: lava
+      bloom_strength: 0.5
+      bloom_halo: 0.28
+      mtf_sigma_frac: 0.0038
+      netd_mk: 25
+      agc_strength: 0.3
+
+  arctic_burn:
+    description: Blue-cold night — warm bodies burn white against arctic darkness.
+    layerB:
+      ambient_c: 8
+      core_c: 35.5
+      span_min_c: 6
+      span_max_c: 37
+    layerC:
+      palette: arctic
+      netd_mk: 50
+      vignette: 0.25
+
+  violet_noir:
+    description: Deep violet noir — magenta hair, indigo darkness, hot orange skin.
+    layerB:
+      span_min_c: 21
+      span_max_c: 37
+    layerC:
+      palette: violet
+      agc_strength: 0.5
+      bloom_strength: 0.3
+      bloom_halo: 0.18
+      netd_mk: 35
+
+  cobalt_xray_glow:
+    description: Cobalt X-ray glow — translucent luminous body on a blue plate.
+    layerB:
+      transmission: 2.5
+      subsurface_rim_c: 4.2
+      grazing_drop_c: 3.0
+      occlusion_warm_c: 1.2
+    layerC:
+      palette: fluoroscope_blue
+      bloom_strength: 0.5
+      bloom_halo: 0.3
+      mtf_sigma_frac: 0.003
+      netd_mk: 20
+
+  # Wide scenes with many small figures — a trading floor, a crowd, a street.
+  # The portrait presets assume one large subject, so their spatial constants are
+  # sized to a face: bloom radius, optical MTF and heat diffusion are all
+  # fractions of the FRAME, which at crowd scale is wider than a whole person.
+  # The result was a field of merged hot blobs even though Layer A had segmented
+  # every figure cleanly. Everything here is a scale correction, not a new look.
+  crowd_survey:
+    description: >-
+      Wide crowd scene — many small figures kept individually readable. Tight
+      optics and short diffusion so neighbours do not merge into one mass.
+    layerB:
+      # Diffusion and conduction are in pixels; at ~100 px per person the
+      # portrait settings bleed one body into the next.
+      diffusion_iters: 4
+      conduction_px: 1.0
+      # The canonical facial heat map warps to ONE detected face. On a crowd it
+      # is either wrong or irrelevant, so the material field carries it instead.
+      face_map: 0.0
+      # Small figures cannot carry a wide translucent rim without turning into
+      # halos, and a hard grazing roll-off carves a black outline at this size.
+      # Low transmission also separates faces from clothed torsos: measured skin
+      # vs fabric luminance gap +61.6 at 0.5 against +52.4 at 0.9, which is the
+      # difference between reading a crowd of people and a field of warm shapes.
+      transmission: 0.5
+      subsurface_rim_c: 0.8
+      grazing_drop_c: 3.0
+      occlusion_warm_c: 1.8
+      hair_detail_c: 0.8
+      skin_detail_c: 0.3
+    layerC:
+      # 480 rows rather than 240: a real 640x480 detector class, and enough to
+      # resolve a figure. The dominant fix is the next two — bloom and MTF.
+      sensor_rows: 480
+      bloom_strength: 0.06
+      bloom_halo: 0.0
+      mtf_sigma_frac: 0.0008
+      netd_mk: 35.0
+      vignette: 0.1
+    layerD:
+      # Saliency emphasis picks a region; on a crowd there is no single subject,
+      # so it just brightens an arbitrary corner.
+      emphasis_amount: 0.05
+      emphasis_contrast: 0.05
+      materiality: 0.8
+      detail_sigma: 0.004

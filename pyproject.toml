@@ -1,0 +1,34 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "heron"
+version = "0.2.0"
+description = "Physically-grounded radiometric imaging engine (thermography, X-ray, Kirlian, Schlieren, night vision, spectroscopy)"
+requires-python = ">=3.11"
+readme = "README.md"
+license = "MIT"
+license-files = ["LICENSE"]
+dependencies = [
+    "numpy>=1.26",
+    "opencv-python>=4.9",
+    "pillow>=10.0",
+    "scipy>=1.11",
+    "pyyaml>=6.0",
+    "typer>=0.12",
+]
+
+[project.optional-dependencies]
+ai = ["torch>=2.2", "transformers>=4.40", "onnxruntime>=1.17", "mediapipe>=0.10"]
+web = ["fastapi>=0.110", "uvicorn>=0.29"]
+dev = ["pytest>=8.0"]
+
+[project.scripts]
+heron = "heron.cli:app"
+
+[tool.setuptools.packages.find]
+include = ["heron*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

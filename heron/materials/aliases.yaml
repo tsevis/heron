@@ -1,0 +1,87 @@
+# VLM / open-vocabulary label -> material-table class (CLAUDE.md §7).
+#
+# Grounding-DINO / SAM taggers and the Ollama VLM return free-text labels;
+# this maps them onto the curated seed classes in table.yaml. Matching is
+# case-insensitive and substring-based (see materials/loader.py), so "cotton
+# t-shirt" resolves via "shirt" -> fabric. Add liberally; keep table.yaml lean.
+
+aliases:
+  # people
+  person: skin
+  man: skin
+  woman: skin
+  child: skin
+  face: skin
+  hand: skin
+  arm: skin
+  leg: skin
+  body: skin
+  foot: skin
+  # hair
+  hair: hair
+  beard: hair
+  fur: hair
+  # clothing / fabric
+  shirt: fabric
+  tshirt: fabric
+  t-shirt: fabric
+  dress: fabric
+  cloth: fabric
+  clothing: fabric
+  fabric: fabric
+  cotton: fabric
+  tutu: fabric
+  curtain: fabric
+  towel: fabric
+  sweater: wool
+  wool: wool
+  knit: wool
+  coat: wool
+  scarf: wool
+  jacket: leather
+  leather: leather
+  belt: leather
+  shoe: leather
+  boot: leather
+  # nature
+  tree: foliage
+  leaf: foliage
+  plant: foliage
+  grass: foliage
+  bush: foliage
+  branch: wood
+  trunk: wood
+  wood: wood
+  table: wood
+  chair: wood
+  # water
+  water: water
+  sea: water
+  ocean: water
+  lake: water
+  river: water
+  pool: water
+  # hard surfaces
+  glass: glass
+  window: glass
+  mirror: glass
+  bottle: glass
+  metal: metal_matte
+  steel: metal_matte
+  iron: metal_matte
+  chrome: metal_polished
+  silver: metal_polished
+  gold: metal_polished
+  knife: metal_polished
+  stone: stone
+  rock: stone
+  wall: stone
+  concrete: stone
+  brick: stone
+  # sky / air
+  sky: sky
+  cloud: sky
+  # misc
+  paper: paper
+  book: paper
+  plastic: plastic

@@ -1,0 +1,63 @@
+# Spectroscope — band-pass spectral decomposition + diffraction grating
+# (CLAUDE.md §1.5, §4). A configuration of the 4-layer stack; works from source
+# color, so Layer A is optional.
+
+engine: spectral
+description: Spectroscope — prism band-split, grating smear, emission lines.
+
+layerA:            # Scene Understanding — not required (works from source color)
+  delight_strength: 0.0
+  depth_tier: fast
+  segment_materials: false
+
+layerB:            # Physics — spectral decomposition (see physics/spectral.py)
+  n_bands: 28
+  wl_min: 410.0
+  wl_max: 690.0
+  dispersion: 0.03
+  saturation: 1.15
+
+layerC:            # Sensor & Optics — grating + plate furniture
+  grating_strength: 0.35
+  grating_spread: 0.12
+  grating_threshold: 0.6
+  emission_lines: false
+  line_spread: 0.4
+  line_opacity: 0.5
+  chromatic: 0.003
+  vignette: 0.2
+  grain: 0.15
+  grain_dose: 160.0
+  dither_lsb: 1.0
+
+presets:
+  prism_split:
+    description: Prism dispersion — the whole frame fanned into a spectrum.
+    layerB:
+      dispersion: 0.05
+      saturation: 1.3
+    layerC:
+      grating_strength: 0.4
+      grating_spread: 0.16
+
+  emission_lines:
+    description: Laboratory plate — bright Fraunhofer/emission lines overlaid.
+    layerB:
+      dispersion: 0.02
+      saturation: 1.2
+    layerC:
+      grating_strength: 0.25
+      emission_lines: true
+      line_spread: 0.42
+      line_opacity: 0.6
+      vignette: 0.35
+
+  chromatic_drift:
+    description: Heavy chromatic drift — saturated rainbow separation from highlights.
+    layerB:
+      dispersion: 0.07
+      saturation: 1.4
+    layerC:
+      grating_strength: 0.5
+      grating_spread: 0.22
+      chromatic: 0.006

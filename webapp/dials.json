@@ -1,0 +1,700 @@
+{
+  "thermograph": {
+    "palette": "ironbow",
+    "neural": true,
+    "defPreset": "translucent_glow",
+    "groups": {
+      "Heat": [
+        {
+          "key": "layerB.core_c",
+          "label": "Core heat °C",
+          "min": 30,
+          "max": 40,
+          "step": 0.5,
+          "def": 34
+        },
+        {
+          "key": "layerB.ambient_c",
+          "label": "Ambient °C",
+          "min": 5,
+          "max": 30,
+          "step": 0.5,
+          "def": 19
+        },
+        {
+          "key": "layerB.span_min_c",
+          "label": "Window low °C",
+          "min": 10,
+          "max": 30,
+          "step": 0.5,
+          "def": 20
+        },
+        {
+          "key": "layerB.span_max_c",
+          "label": "Window high °C",
+          "min": 30,
+          "max": 45,
+          "step": 0.5,
+          "def": 37.5
+        }
+      ],
+      "Translucency & glow": [
+        {
+          "key": "layerB.transmission",
+          "label": "Transparency",
+          "min": 0,
+          "max": 2.5,
+          "step": 0.05,
+          "def": 1.5
+        },
+        {
+          "key": "layerB.subsurface_rim_c",
+          "label": "Rim glow",
+          "min": 0,
+          "max": 5,
+          "step": 0.1,
+          "def": 1.8
+        },
+        {
+          "key": "layerC.bloom_strength",
+          "label": "Bloom",
+          "min": 0,
+          "max": 1,
+          "step": 0.02,
+          "def": 0.18
+        },
+        {
+          "key": "layerC.bloom_halo",
+          "label": "Halo",
+          "min": 0,
+          "max": 0.5,
+          "step": 0.02,
+          "def": 0.12
+        }
+      ],
+      "Form & detail": [
+        {
+          "key": "layerB.grazing_drop_c",
+          "label": "3-D shape",
+          "min": 0,
+          "max": 12,
+          "step": 0.5,
+          "def": 6.5
+        },
+        {
+          "key": "layerB.occlusion_warm_c",
+          "label": "Crevice warmth",
+          "min": 0,
+          "max": 6,
+          "step": 0.2,
+          "def": 2.6
+        },
+        {
+          "key": "layerB.hair_root_warmth",
+          "label": "Hair roots",
+          "min": 0,
+          "max": 1,
+          "step": 0.05,
+          "def": 0.45
+        },
+        {
+          "key": "layerB.hair_detail_c",
+          "label": "Hair detail",
+          "min": 0,
+          "max": 6,
+          "step": 0.2,
+          "def": 2
+        }
+      ],
+      "Sensor": [
+        {
+          "key": "layerC.netd_mk",
+          "label": "Noise mK",
+          "min": 0,
+          "max": 120,
+          "step": 5,
+          "def": 60
+        },
+        {
+          "key": "layerC.mtf_sigma_frac",
+          "label": "Optics softness",
+          "min": 0,
+          "max": 0.006,
+          "step": 0.0002,
+          "def": 0.0022
+        },
+        {
+          "key": "layerC.agc_strength",
+          "label": "AGC contrast",
+          "min": 0,
+          "max": 1,
+          "step": 0.05,
+          "def": 0.35
+        },
+        {
+          "key": "layerC.sensor_rows",
+          "label": "Detector rows",
+          "min": 0,
+          "max": 960,
+          "step": 80,
+          "def": 240
+        }
+      ]
+    }
+  },
+  "fluoroscope": {
+    "palette": "fluoroscope_blue",
+    "neural": false,
+    "defPreset": "cold_blue_nude",
+    "groups": {
+      "X-ray": [
+        {
+          "key": "layerB.thickness_gain",
+          "label": "Density",
+          "min": 1,
+          "max": 6,
+          "step": 0.1,
+          "def": 3.5
+        },
+        {
+          "key": "layerB.flesh_floor",
+          "label": "Flesh glow",
+          "min": 0,
+          "max": 0.4,
+          "step": 0.02,
+          "def": 0.12
+        },
+        {
+          "key": "layerB.rim",
+          "label": "Edge glow",
+          "min": 0,
+          "max": 1,
+          "step": 0.05,
+          "def": 0.3
+        },
+        {
+          "key": "layerB.contrast",
+          "label": "Contrast",
+          "min": 0.5,
+          "max": 1.5,
+          "step": 0.05,
+          "def": 0.9
+        },
+        {
+          "key": "layerB.headroom",
+          "label": "Exposure ceiling",
+          "min": 0.5,
+          "max": 1,
+          "step": 0.02,
+          "def": 0.9
+        },
+        {
+          "key": "layerD.materiality",
+          "label": "Tissue detail",
+          "min": 0,
+          "max": 1,
+          "step": 0.05,
+          "def": 0.5
+        },
+        {
+          "key": "layerB.skeleton",
+          "label": "Skeleton",
+          "min": 0,
+          "max": 1,
+          "step": 0.05,
+          "def": 0
+        }
+      ],
+      "Screen": [
+        {
+          "key": "layerC.bloom_strength",
+          "label": "Phosphor bloom",
+          "min": 0,
+          "max": 1,
+          "step": 0.02,
+          "def": 0.4
+        },
+        {
+          "key": "layerC.quantum_dose",
+          "label": "Dose (grain⁻¹)",
+          "min": 20,
+          "max": 200,
+          "step": 5,
+          "def": 80
+        },
+        {
+          "key": "layerC.quantum_strength",
+          "label": "Grain",
+          "min": 0,
+          "max": 1,
+          "step": 0.05,
+          "def": 0.5
+        },
+        {
+          "key": "layerC.vignette",
+          "label": "Vignette",
+          "min": 0,
+          "max": 0.5,
+          "step": 0.02,
+          "def": 0.25
+        }
+      ]
+    }
+  },
+  "intensifier": {
+    "palette": "p22_green",
+    "neural": false,
+    "defPreset": "gen2_p22",
+    "groups": {
+      "Tube": [
+        {
+          "key": "layerB.gain",
+          "label": "Gain",
+          "min": 1,
+          "max": 8,
+          "step": 0.1,
+          "def": 4
+        },
+        {
+          "key": "layerB.gamma",
+          "label": "Phosphor gamma",
+          "min": 0.3,
+          "max": 1,
+          "step": 0.02,
+          "def": 0.55
+        },
+        {
+          "key": "layerB.flux",
+          "label": "Photon flux",
+          "min": 10,
+          "max": 150,
+          "step": 5,
+          "def": 45
+        },
+        {
+          "key": "layerB.bloom_gate",
+          "label": "Source gate",
+          "min": 0.5,
+          "max": 1,
+          "step": 0.02,
+          "def": 0.85
+        }
+      ],
+      "Phosphor": [
+        {
+          "key": "layerC.bloom_strength",
+          "label": "Bloom",
+          "min": 0,
+          "max": 1,
+          "step": 0.02,
+          "def": 0.5
+        },
+        {
+          "key": "layerC.source_halo",
+          "label": "Light halos",
+          "min": 0,
+          "max": 1,
+          "step": 0.05,
+          "def": 0.35
+        },
+        {
+          "key": "layerC.faceplate",
+          "label": "Honeycomb",
+          "min": 0,
+          "max": 0.4,
+          "step": 0.02,
+          "def": 0.12
+        },
+        {
+          "key": "layerC.scanlines",
+          "label": "Scanlines",
+          "min": 0,
+          "max": 0.6,
+          "step": 0.02,
+          "def": 0
+        },
+        {
+          "key": "layerC.scanline_jitter",
+          "label": "Tape jitter",
+          "min": 0,
+          "max": 1,
+          "step": 0.05,
+          "def": 0
+        },
+        {
+          "key": "layerC.vignette",
+          "label": "Vignette",
+          "min": 0,
+          "max": 0.6,
+          "step": 0.02,
+          "def": 0.4
+        }
+      ]
+    }
+  },
+  "nir": {
+    "palette": "white_hot",
+    "neural": false,
+    "defPreset": "wood_effect_grove",
+    "groups": {
+      "NIR film": [
+        {
+          "key": "layerB.skin_smooth",
+          "label": "Waxy skin",
+          "min": 0,
+          "max": 1,
+          "step": 0.05,
+          "def": 0.6
+        },
+        {
+          "key": "layerB.contrast",
+          "label": "Contrast",
+          "min": 0.5,
+          "max": 1.6,
+          "step": 0.05,
+          "def": 1
+        },
+        {
+          "key": "layerC.bloom_strength",
+          "label": "Bloom",
+          "min": 0,
+          "max": 1,
+          "step": 0.02,
+          "def": 0.25
+        },
+        {
+          "key": "layerC.saturation",
+          "label": "EIR saturation",
+          "min": 0.5,
+          "max": 2,
+          "step": 0.05,
+          "def": 1.3
+        },
+        {
+          "key": "layerC.vignette",
+          "label": "Vignette",
+          "min": 0,
+          "max": 0.5,
+          "step": 0.02,
+          "def": 0.15
+        }
+      ]
+    }
+  },
+  "kirlian": {
+    "palette": "fluoroscope_blue",
+    "neural": false,
+    "defPreset": "classic_leaf",
+    "groups": {
+      "Corona": [
+        {
+          "key": "layerB.aura_falloff",
+          "label": "Aura reach",
+          "min": 0.005,
+          "max": 0.08,
+          "step": 0.005,
+          "def": 0.02
+        },
+        {
+          "key": "layerB.aura_gain",
+          "label": "Aura power",
+          "min": 0,
+          "max": 2,
+          "step": 0.05,
+          "def": 1
+        },
+        {
+          "key": "layerB.inner_glow",
+          "label": "Inner glow",
+          "min": 0,
+          "max": 0.6,
+          "step": 0.02,
+          "def": 0.15
+        },
+        {
+          "key": "layerB.n_streamers",
+          "label": "Streamers",
+          "min": 0,
+          "max": 120,
+          "step": 2,
+          "def": 44
+        },
+        {
+          "key": "layerB.streamer_length",
+          "label": "Streamer length",
+          "min": 0.02,
+          "max": 0.3,
+          "step": 0.01,
+          "def": 0.13
+        },
+        {
+          "key": "layerB.branch_prob",
+          "label": "Branching",
+          "min": 0,
+          "max": 0.2,
+          "step": 0.01,
+          "def": 0.05
+        },
+        {
+          "key": "layerB.spark_amount",
+          "label": "Sparks",
+          "min": 0,
+          "max": 1,
+          "step": 0.05,
+          "def": 0.3
+        }
+      ],
+      "Plate": [
+        {
+          "key": "layerC.bloom_strength",
+          "label": "Bloom",
+          "min": 0,
+          "max": 1,
+          "step": 0.02,
+          "def": 0.45
+        },
+        {
+          "key": "layerC.chromatic",
+          "label": "Color fringe",
+          "min": 0,
+          "max": 0.012,
+          "step": 0.001,
+          "def": 0.004
+        },
+        {
+          "key": "layerC.grain",
+          "label": "Film grain",
+          "min": 0,
+          "max": 1,
+          "step": 0.05,
+          "def": 0.3
+        },
+        {
+          "key": "layerC.vignette",
+          "label": "Vignette",
+          "min": 0,
+          "max": 0.6,
+          "step": 0.02,
+          "def": 0.35
+        }
+      ]
+    }
+  },
+  "schlieren": {
+    "palette": "white_hot",
+    "neural": false,
+    "defPreset": "breath_heat_plume",
+    "groups": {
+      "Knife edge": [
+        {
+          "key": "layerB.cutoff_angle_deg",
+          "label": "Edge angle °",
+          "min": 0,
+          "max": 180,
+          "step": 5,
+          "def": 0
+        },
+        {
+          "key": "layerB.gain",
+          "label": "Gradient gain",
+          "min": 1,
+          "max": 15,
+          "step": 0.5,
+          "def": 7
+        },
+        {
+          "key": "layerB.plume_amount",
+          "label": "Heat plumes",
+          "min": 0,
+          "max": 1.5,
+          "step": 0.05,
+          "def": 0.5
+        },
+        {
+          "key": "layerB.plume_height",
+          "label": "Plume rise",
+          "min": 0.1,
+          "max": 0.9,
+          "step": 0.05,
+          "def": 0.45
+        },
+        {
+          "key": "layerB.blur",
+          "label": "Pre-blur",
+          "min": 0,
+          "max": 0.004,
+          "step": 0.0002,
+          "def": 0.0015
+        }
+      ],
+      "Plate": [
+        {
+          "key": "layerC.grain",
+          "label": "Grain",
+          "min": 0,
+          "max": 1,
+          "step": 0.05,
+          "def": 0.25
+        },
+        {
+          "key": "layerC.vignette",
+          "label": "Vignette",
+          "min": 0,
+          "max": 0.5,
+          "step": 0.02,
+          "def": 0.2
+        }
+      ]
+    }
+  },
+  "lumen": {
+    "palette": "p22_green",
+    "neural": false,
+    "defPreset": "gfp",
+    "groups": {
+      "Glow": [
+        {
+          "key": "layerB.organic_boost",
+          "label": "Organic glow",
+          "min": 0,
+          "max": 1,
+          "step": 0.05,
+          "def": 0.6
+        },
+        {
+          "key": "layerB.thickness_bias",
+          "label": "Volume light",
+          "min": 0,
+          "max": 1,
+          "step": 0.05,
+          "def": 0.55
+        },
+        {
+          "key": "layerB.rim",
+          "label": "Edge escape",
+          "min": 0,
+          "max": 1,
+          "step": 0.05,
+          "def": 0.35
+        },
+        {
+          "key": "layerB.scatter_gain",
+          "label": "Scatter",
+          "min": 0,
+          "max": 2,
+          "step": 0.05,
+          "def": 1
+        },
+        {
+          "key": "layerB.scatter_scale",
+          "label": "Scatter reach",
+          "min": 0.005,
+          "max": 0.06,
+          "step": 0.005,
+          "def": 0.02
+        }
+      ],
+      "Chamber": [
+        {
+          "key": "layerC.bloom_strength",
+          "label": "Bloom",
+          "min": 0,
+          "max": 1,
+          "step": 0.02,
+          "def": 0.5
+        },
+        {
+          "key": "layerC.bloom_halo",
+          "label": "Halo",
+          "min": 0,
+          "max": 0.5,
+          "step": 0.02,
+          "def": 0.25
+        },
+        {
+          "key": "layerC.vignette",
+          "label": "Darkness",
+          "min": 0,
+          "max": 0.6,
+          "step": 0.02,
+          "def": 0.3
+        },
+        {
+          "key": "layerC.grain",
+          "label": "Grain",
+          "min": 0,
+          "max": 1,
+          "step": 0.05,
+          "def": 0.2
+        }
+      ]
+    }
+  },
+  "spectroscope": {
+    "palette": null,
+    "neural": false,
+    "defPreset": "prism_split",
+    "groups": {
+      "Spectrum": [
+        {
+          "key": "layerB.n_bands",
+          "label": "Bands",
+          "min": 8,
+          "max": 48,
+          "step": 2,
+          "def": 28
+        },
+        {
+          "key": "layerB.dispersion",
+          "label": "Dispersion",
+          "min": 0,
+          "max": 0.1,
+          "step": 0.005,
+          "def": 0.03
+        },
+        {
+          "key": "layerB.saturation",
+          "label": "Saturation",
+          "min": 0.5,
+          "max": 2,
+          "step": 0.05,
+          "def": 1.15
+        }
+      ],
+      "Grating": [
+        {
+          "key": "layerC.grating_strength",
+          "label": "Grating smear",
+          "min": 0,
+          "max": 1,
+          "step": 0.05,
+          "def": 0.35
+        },
+        {
+          "key": "layerC.grating_spread",
+          "label": "Smear spread",
+          "min": 0,
+          "max": 0.3,
+          "step": 0.01,
+          "def": 0.12
+        },
+        {
+          "key": "layerC.chromatic",
+          "label": "Color fringe",
+          "min": 0,
+          "max": 0.01,
+          "step": 0.001,
+          "def": 0.003
+        },
+        {
+          "key": "layerC.grain",
+          "label": "Grain",
+          "min": 0,
+          "max": 1,
+          "step": 0.05,
+          "def": 0.15
+        }
+      ]
+    }
+  }
+}

@@ -1,0 +1,73 @@
+# Lumen Chamber — bioluminescence / chemiluminescence (CLAUDE.md §1.5, §4).
+# Inner-glow emission (shares the emission->palette family with the Thermograph).
+
+engine: lumen
+description: Bioluminescent chamber — self-luminous translucent body in darkness.
+
+layerA:            # Scene Understanding — matte + materials shape the glow
+  delight_strength: 0.9
+  depth_tier: fast
+  segment_materials: true
+
+layerB:            # Physics — inner glow (see physics/lumen.py: LumenParams)
+  organic_boost: 0.6
+  thickness_bias: 0.55
+  depth_bias: 0.3
+  rim: 0.35
+  scatter_gain: 1.0
+  scatter_scale: 0.02
+
+layerC:            # Sensor & Optics — soft glow
+  palette: p22_green
+  bloom_strength: 0.5
+  bloom_threshold: 0.3
+  bloom_halo: 0.25
+  vignette: 0.3
+  grain: 0.2
+  grain_dose: 140.0
+  dither_lsb: 1.0
+
+layerD:            # Art Direction
+  emphasis_amount: 0.25
+  emphasis_contrast: 0.2
+
+presets:
+  gfp:
+    description: Green fluorescent protein — vivid GFP-green cellular glow.
+    layerB:
+      organic_boost: 0.7
+      rim: 0.4
+    layerC:
+      palette: p22_green
+      bloom_strength: 0.55
+
+  deep_sea:
+    description: Deep-sea bioluminescence — cold blue-green light in the dark.
+    layerB:
+      scatter_gain: 1.2
+      rim: 0.45
+    layerC:
+      palette: arctic
+      bloom_strength: 0.6
+      bloom_halo: 0.3
+      vignette: 0.4
+
+  chemilume_blue:
+    description: Chemiluminescent glow-stick blue (aequorin) — even, liquid light.
+    layerB:
+      thickness_bias: 0.65
+      rim: 0.3
+    layerC:
+      palette: fluoroscope_blue
+      bloom_strength: 0.5
+
+  icon_gold:
+    description: Golden icon-light luminescence — warm inner radiance.
+    layerB:
+      organic_boost: 0.5
+      rim: 0.35
+    layerC:
+      palette: icon_gold
+      bloom_strength: 0.55
+      bloom_halo: 0.28
+      vignette: 0.35

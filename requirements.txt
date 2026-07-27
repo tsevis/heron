@@ -1,0 +1,13 @@
+# Heron — core engine dependencies (Phase 0 classical path needs only these)
+numpy>=1.26
+opencv-python>=4.9
+pillow>=10.0
+scipy>=1.11
+pyyaml>=6.0
+typer>=0.12
+
+# --- Layer A (AI) — installed on demand, see requirements-ai.txt ---
+# torch, transformers, onnxruntime, mediapipe
+
+# --- Phase 2 (web) — see requirements-web.txt ---
+# fastapi, uvicorn

@@ -1,0 +1,237 @@
+<!-- Heron panel shell. UXP renders a restricted DOM: Adobe's built-in sp-*
+     Spectrum widgets need no bundler, so this panel has no build step and no
+     node_modules — the whole thing is three files Photoshop can load directly.
+
+     Laid out for a docked panel on a small screen: the camera/preset row and
+     the render button stay above the fold, and the dial groups are collapsed
+     disclosures rather than one long column. Dial labels are plain DOM text,
+     NOT sp-slider's own `label` attribute — UXP ignores that attribute and the
+     first build shipped sixteen unlabelled sliders. -->
+<html>
+<head>
+  <style>
+    html, body { height: 100%; }
+    body {
+      margin: 0;
+      padding: 0 10px 14px;
+      font-size: 11px;
+      color: #d8d8d8;
+      /* `scroll`, not `auto`: the panel is taller than most docked heights, and
+         an overlay bar that only appears on hover reads as "no scrollbar". */
+      overflow-y: scroll;
+      scrollbar-width: thin;
+      scrollbar-color: #6e6e6e #2a2a2a;
+    }
+    body::-webkit-scrollbar { width: 11px; }
+    body::-webkit-scrollbar-track { background: #262626; border-radius: 6px; }
+    body::-webkit-scrollbar-thumb {
+      background: #6e6e6e;
+      border-radius: 6px;
+      border: 2px solid #262626;   /* inset so the thumb reads as a pill */
+    }
+    body::-webkit-scrollbar-thumb:hover { background: #8c8c8c; }
+
+    /* ---- header: wordmark and state on one line ---- */
+    .head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 6px;
+      padding: 8px 0 2px;
+    }
+    .wordmark { font-size: 12px; letter-spacing: 2.5px; font-weight: 700; }
+    .wordmark .n { color: #ff7a1a; }
+
+    .status {
+      padding: 5px 7px;
+      border-radius: 4px;
+      background: #2b2b2b;
+      color: #b9b9b9;
+      margin: 4px 0 8px;
+      line-height: 1.4;
+      font-size: 10px;
+      white-space: pre-wrap;
+    }
+    .status.bad { background: #4a2320; color: #ffbdb4; }
+    .status.busy { background: #2a3546; color: #bcd4ff; }
+    /* When all is well the status is one quiet line, not a banner. */
+    .status.ok { background: transparent; padding: 0 2px; color: #7d7d7d; font-size: 9px; }
+
+    /* ---- compact labelled field ---- */
+    .field { margin-bottom: 6px; }
+    .field > label {
+      display: block;
+      font-size: 9px;
+      text-transform: uppercase;
+      letter-spacing: 0.6px;
+      color: #8a8a8a;
+      margin-bottom: 1px;
+    }
+    .desc { font-size: 9px; color: #7d7d7d; line-height: 1.35; margin: 2px 0 0; }
+
+    /* ---- collapsible dial group ---- */
+    .group { margin-top: 8px; }
+    .ghead {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      font-size: 9px;
+      text-transform: uppercase;
+      letter-spacing: 0.7px;
+      color: #9a9a9a;
+      border-bottom: 1px solid #3a3a3a;
+      padding: 3px 1px;
+      cursor: pointer;
+      user-select: none;
+    }
+    .ghead:hover { color: #d8d8d8; }
+    .chev { font-size: 8px; width: 8px; color: #7d7d7d; }
+    .gcount { margin-left: auto; color: #6d6d6d; font-size: 9px; }
+    .gbody { padding-top: 3px; }
+
+    /* ---- one dial: name + value on a tight line, slider under it ---- */
+    .dial { margin: 0 0 4px; }
+    .dline {
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      gap: 6px;
+      line-height: 1.2;
+    }
+    .dname {
+      font-size: 10px;
+      color: #c4c4c4;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .dval {
+      font-size: 10px;
+      color: #9a9a9a;
+      flex: none;
+      font-variant-numeric: tabular-nums;
+    }
+    .dial sp-slider { width: 100%; margin: 0; }
+    .dial.moved .dname { color: #ff9a4a; }   /* changed from the preset default */
+
+    .actions { margin: 8px 0 2px; }
+    .actions sp-button { width: 100%; }
+
+    .foot {
+      font-size: 9px;
+      color: #6d6d6d;
+      line-height: 1.4;
+      margin-top: 10px;
+      border-top: 1px solid #333;
+      padding-top: 6px;
+    }
+    .foot .row { display: flex; align-items: center; gap: 4px; margin-top: 4px; }
+    .hidden { display: none; }
+  </style>
+</head>
+
+<body>
+  <div class="head">
+    <span class="wordmark">HERO<span class="n">N</span></span>
+    <sp-action-button id="reset" quiet title="Return every dial to the preset">Reset dials</sp-action-button>
+  </div>
+
+  <div id="status" class="status">Looking for the Heron service…</div>
+
+  <div id="controls" class="hidden">
+    <div class="field">
+      <label>Camera</label>
+      <sp-dropdown id="instrument" style="width: 100%">
+        <sp-menu id="instrument-menu" slot="options"></sp-menu>
+      </sp-dropdown>
+    </div>
+
+    <div class="field">
+      <label>Preset</label>
+      <sp-dropdown id="preset" style="width: 100%">
+        <sp-menu id="preset-menu" slot="options"></sp-menu>
+      </sp-dropdown>
+      <div id="preset-desc" class="desc"></div>
+    </div>
+
+    <div class="field">
+      <label>Palette</label>
+      <sp-dropdown id="palette" style="width: 100%">
+        <sp-menu id="palette-menu" slot="options"></sp-menu>
+      </sp-dropdown>
+    </div>
+
+    <!-- Render sits directly under the pickers so it never needs scrolling to.
+         "Render layers" read as a description of the INPUT ("render the
+         layers") when it was describing the output, so it looked like it was
+         rendering the active layer. The input is stated underneath instead. -->
+    <div class="actions">
+      <sp-button id="render" variant="cta">Render → layer stack</sp-button>
+    </div>
+    <div class="desc" id="scope-note"></div>
+
+    <!-- Seed is explicit: same document + same dials + same seed must give the
+         same layers, so the panel always sends one rather than letting the
+         service pick a default silently. -->
+    <div class="field" style="display: flex; align-items: center; gap: 6px">
+      <label style="margin: 0">Seed</label>
+      <sp-textfield id="seed" value="7" style="width: 62px"></sp-textfield>
+      <sp-action-button id="dice" quiet title="New random seed">🎲</sp-action-button>
+    </div>
+
+    <!-- On by default, matching the web app: real depth/matte/materials. The
+         classical fallback is much faster but visibly coarser, so the cost is
+         stated rather than hidden. -->
+    <div class="field">
+      <sp-checkbox id="useai" checked>AI scene analysis</sp-checkbox>
+      <div class="desc" id="ai-note"></div>
+    </div>
+
+    <!-- Renders only the marquee and puts the layers back on exactly those
+         bounds. Falls back to the whole canvas when nothing is selected, and
+         says which one it did. -->
+    <div class="field">
+      <sp-checkbox id="useselection" checked>Selection only, when there is one</sp-checkbox>
+    </div>
+
+    <!-- Off by default: 1280 px is the fast dial-turning path. Turn it on for the
+         final render, once the look is settled. -->
+    <div class="field">
+      <sp-checkbox id="fullres">Render at document resolution</sp-checkbox>
+      <div class="desc" id="fullres-note"></div>
+    </div>
+
+    <!-- Off by default and priced honestly: enabling it is an informed choice,
+         and it arrives as its own top layer, never merged into the group. -->
+    <div class="field">
+      <sp-checkbox id="neural">Neural finish</sp-checkbox>
+      <div class="desc" id="neural-note"></div>
+      <div id="neural-dials" class="hidden">
+        <div class="dial">
+          <div class="dline">
+            <span class="dname">Strength</span>
+            <span class="dval" id="nstr-val">0.52</span>
+          </div>
+          <sp-slider id="nstr" min="0.2" max="0.8" step="0.02" value="0.52"></sp-slider>
+        </div>
+      </div>
+    </div>
+
+    <div id="dials"></div>
+  </div>
+
+  <div class="foot">
+    <div id="resnote"></div>
+    <div class="row">
+      Port
+      <sp-textfield id="port" value="8077" style="width: 62px"></sp-textfield>
+      <sp-action-button id="reconnect" quiet>Reconnect</sp-action-button>
+      <sp-action-button id="selftest" quiet
+        title="Check that a layer placed after a group lands above it, not inside">Verify placement</sp-action-button>
+    </div>
+    <div id="disclaimer" style="margin-top: 4px"></div>
+  </div>
+
+  <script src="main.js"></script>
+</body>
+</html>

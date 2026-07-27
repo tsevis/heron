@@ -1,0 +1,17 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "heron-web",
+      "runtimeExecutable": "/Users/tsevis/AI/ClaudeCode/heron/.venv/bin/python",
+      "runtimeArgs": [
+        "-m", "uvicorn",
+        "--app-dir", "/Users/tsevis/AI/ClaudeCode/heron",
+        "webapp.server:app",
+        "--host", "127.0.0.1",
+        "--port", "8077"
+      ],
+      "port": 8077
+    }
+  ]
+}

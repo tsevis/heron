@@ -1,0 +1,72 @@
+# Schlieren Bench — density-gradient / knife-edge optics (CLAUDE.md §1.4, §4).
+# Reuses the thermography engine's field as the density source; a configuration
+# of the 4-layer stack.
+
+engine: schlieren
+description: Schlieren optics — density gradients, rising heat plumes, knife edge.
+
+layerA:            # Scene Understanding — feeds the reused thermal density source
+  delight_strength: 0.9
+  depth_tier: fast
+  segment_materials: true
+
+layerB:            # Physics — signed derivative of the thermal field (see schlieren.py)
+  cutoff_angle_deg: 0.0
+  gain: 7.0
+  plume_amount: 0.5
+  plume_height: 0.45
+  plume_scale: 0.06
+  blur: 0.0015
+
+layerC:            # Sensor & Optics
+  mode: knife        # knife | color | bos
+  palette: white_hot
+  mtf_sigma_frac: 0.0008
+  vignette: 0.2
+  grain: 0.25
+  grain_dose: 150.0
+  dither_lsb: 1.0
+
+presets:
+  breath_heat_plume:
+    description: Classic grayscale Schlieren — rising body heat and breath plumes.
+    layerB:
+      cutoff_angle_deg: 0.0
+      gain: 7.0
+      plume_amount: 0.7
+      plume_height: 0.55
+    layerC:
+      mode: knife
+      palette: white_hot
+
+  color_cutoff:
+    description: Rainbow-cutoff color Schlieren — gradient direction as hue.
+    layerB:
+      gain: 6.0
+      plume_amount: 0.6
+    layerC:
+      mode: color
+      palette: turbo
+      grain: 0.15
+
+  shockwave:
+    description: High-gain sharp-gradient look — crisp density shock fronts.
+    layerB:
+      gain: 12.0
+      plume_amount: 0.25
+      blur: 0.0008
+    layerC:
+      mode: knife
+      palette: white_hot
+      grain: 0.1
+
+  bos_ripple:
+    description: Background-oriented Schlieren — heat as ripples in a reference field.
+    layerB:
+      gain: 7.0
+      plume_amount: 0.6
+    layerC:
+      mode: bos
+      bos_gain: 60.0
+      palette: white_hot
+      grain: 0.05

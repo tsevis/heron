@@ -1,0 +1,80 @@
+# Intensifier Tube — image-intensifier night vision (CLAUDE.md §1.2, §4).
+# Photon amplification of real scene light; a configuration of the 4-layer stack.
+
+engine: photon
+description: Image-intensifier night-vision tube — photon-starved phosphor view.
+
+layerA:            # Scene Understanding — not required (photon uses source light)
+  delight_strength: 0.0   # night vision shows real illumination, do not de-light
+  depth_tier: fast
+  segment_materials: false
+
+layerB:            # Physics — photon flux (see physics/photon.py: PhotonParams)
+  gain: 4.0
+  gamma: 0.55
+  flux: 45.0        # lower = grainier (photon-starved)
+  black_level: 0.02
+  bloom_gate: 0.85
+
+layerC:            # Sensor & Optics — phosphor tube
+  palette: p22_green
+  sensor_rows: 0
+  bloom_strength: 0.5
+  bloom_threshold: 0.6
+  bloom_halo: 0.2
+  source_halo: 0.35
+  faceplate: 0.12
+  faceplate_cell_px: 6.0
+  scanlines: 0.0
+  scanline_period: 3.0
+  scanline_jitter: 0.0
+  vignette: 0.4
+  dither_lsb: 1.0
+
+presets:
+  gen2_p22:
+    description: Gen 2 tube — classic P22 green, visible grain and honeycomb.
+    layerB:
+      gain: 4.0
+      flux: 35.0
+    layerC:
+      palette: p22_green
+      faceplate: 0.16
+      source_halo: 0.4
+
+  gen3:
+    description: Gen 3 — brighter, cleaner, tighter grain, subtle faceplate.
+    layerB:
+      gain: 5.5
+      flux: 80.0
+      gamma: 0.5
+    layerC:
+      palette: p22_green
+      faceplate: 0.08
+      bloom_strength: 0.45
+      source_halo: 0.3
+
+  white_phosphor:
+    description: Modern white-phosphor tube (P43) — neutral, high clarity.
+    layerB:
+      gain: 5.0
+      flux: 90.0
+    layerC:
+      palette: p43_white
+      faceplate: 0.06
+      source_halo: 0.28
+
+  vhs_surveillance:
+    description: Low-res analog surveillance — scanlines, tape jitter, heavy grain.
+    layerB:
+      gain: 4.5
+      flux: 22.0
+    layerC:
+      palette: p22_green
+      sensor_rows: 240
+      scanlines: 0.3
+      scanline_period: 3.0
+      scanline_jitter: 0.4
+      faceplate: 0.05
+      vignette: 0.5
+      source_halo: 0.45

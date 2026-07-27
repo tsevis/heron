@@ -1,0 +1,84 @@
+# Kirlian Plate — corona / electrophotography simulation (CLAUDE.md §1.3, §4).
+# The first synthetic instrument: aura + dielectric-breakdown streamers + sparks
+# grown from the subject matte. A configuration of the 4-layer stack.
+
+engine: corona
+description: Kirlian electrophotography — corona aura and discharge streamers.
+
+layerA:            # Scene Understanding — matte + materials seed the corona
+  delight_strength: 0.9
+  depth_tier: fast
+  segment_materials: true   # materials modulate corona activity (hair/skin > fabric)
+
+layerB:            # Physics — corona (see physics/kirlian.py: KirlianParams)
+  aura_falloff: 0.02
+  aura_gain: 1.0
+  inner_glow: 0.15
+  n_streamers: 44
+  streamer_length: 0.13
+  branch_prob: 0.05
+  jitter: 0.5
+  curl_amp: 0.7
+  spark_amount: 0.3
+
+layerC:            # Sensor & Optics — film plate
+  palette: fluoroscope_blue
+  bloom_strength: 0.45
+  bloom_threshold: 0.35
+  bloom_halo: 0.2
+  vignette: 0.35
+  chromatic: 0.004
+  grain: 0.3
+  grain_dose: 120.0
+  dither_lsb: 1.0
+
+presets:
+  classic_leaf:
+    description: Classic blue-white corona around a clean silhouette.
+    layerB:
+      n_streamers: 40
+      streamer_length: 0.11
+      spark_amount: 0.25
+    layerC:
+      palette: fluoroscope_blue
+      chromatic: 0.005
+
+  fingertip_storm:
+    description: Violent long branching discharges from every sharp tip.
+    layerB:
+      n_streamers: 70
+      streamer_length: 0.22
+      branch_prob: 0.09
+      jitter: 0.7
+      curl_amp: 0.9
+      spark_amount: 0.45
+    layerC:
+      palette: arctic
+      bloom_strength: 0.6
+      chromatic: 0.006
+
+  full_body_aura:
+    description: Broad smooth energy field, few streamers — the whole-body glow.
+    layerB:
+      aura_falloff: 0.045
+      aura_gain: 1.2
+      inner_glow: 0.25
+      n_streamers: 22
+      streamer_length: 0.1
+      spark_amount: 0.15
+    layerC:
+      palette: violet
+      bloom_strength: 0.55
+      vignette: 0.4
+
+  electrophoto_1939:
+    description: Vintage monochrome plate — heavy silver grain, warm paper.
+    layerB:
+      n_streamers: 38
+      spark_amount: 0.35
+    layerC:
+      palette: white_hot
+      chromatic: 0.002
+      grain: 0.6
+      grain_dose: 60.0
+      vignette: 0.45

@@ -1,0 +1,22 @@
+# Heron — Layer A (Scene Understanding) dependencies.
+# Install only when enabling AI: `.venv/bin/pip install -r requirements-ai.txt`
+# Models themselves are loaded read-only from local paths (see CLAUDE.md §5);
+# nothing here downloads weights on install.
+torch>=2.2
+torchvision>=0.17   # transformers depth-estimation image processor needs it
+transformers>=4.40
+onnxruntime>=1.17
+mediapipe>=0.10
+
+# --- SAM 3 (per-region materials) runtime deps ---
+# SAM 3 itself is imported read-only from ~/AI/ClaudeCode/mozaix/models/sam3 via
+# sys.path (NOT pip-installed, so the mozaix dir stays untouched). These are the
+# packages its modules import at load time:
+einops
+timm>=1.0.17
+ftfy
+regex
+iopath>=0.1.10
+pycocotools
+psutil
+"setuptools<81"     # SAM 3 uses pkg_resources, removed in setuptools>=81

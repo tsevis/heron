@@ -1,0 +1,412 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Heron — Optical Bench</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%230d0d10'/%3E%3Ccircle cx='16' cy='16' r='9' fill='%23ff7a18'/%3E%3Ccircle cx='16' cy='16' r='4' fill='%23fff3e0'/%3E%3C/svg%3E">
+<style>
+  :root { --bg:#0d0d10; --panel:#16161b; --line:#26262e; --text:#d8d8de; --dim:#8a8a94; --hot:#ff7a18; }
+  * { box-sizing:border-box; min-width:0; }
+  body { margin:0; background:var(--bg); color:var(--text); font:14px/1.45 -apple-system, "Segoe UI", sans-serif; }
+  header { padding:12px 18px; border-bottom:1px solid var(--line); display:flex; align-items:center; gap:14px; flex-wrap:wrap; }
+  header h1 { margin:0; font-size:17px; letter-spacing:.14em; }
+  header h1 b { color:var(--hot); }
+  header span { color:var(--dim); font-size:12px; flex:1; }
+  #gear { cursor:pointer; font-size:16px; padding:4px 10px; border-radius:8px; }
+  main { display:grid; grid-template-columns:minmax(340px, 380px) minmax(0, 1fr); }
+  aside { border-right:1px solid var(--line); background:var(--panel); padding:14px 16px 20px; overflow-y:auto; overflow-x:hidden; max-height:calc(100vh - 49px); }
+  .group { margin-bottom:16px; }
+  .group h2 { font-size:11px; letter-spacing:.12em; color:var(--dim); text-transform:uppercase; margin:0 0 6px; }
+  .row { display:flex; align-items:center; gap:8px; margin:6px 0; }
+  .row label { flex:0 0 104px; font-size:12.5px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .row input[type=range] { flex:1 1 auto; accent-color:var(--hot); min-width:60px; }
+  .row output { flex:0 0 58px; text-align:right; font-size:11.5px; color:var(--dim); font-variant-numeric:tabular-nums; }
+  select, input[type=number], input[type=text], textarea, button { background:#1e1e25; color:var(--text); border:1px solid var(--line); border-radius:6px; padding:6px 8px; font:inherit; }
+  select { flex:1; width:100%; }
+  input[type=text] { width:100%; }
+  textarea { width:100%; height:52px; font-size:12px; font-family:ui-monospace, monospace; resize:vertical; }
+  .btn { width:100%; padding:10px; margin-top:8px; cursor:pointer; border-radius:8px; font-weight:600; }
+  .btn.primary { background:var(--hot); color:#140a02; border-color:transparent; }
+  .btn:disabled { opacity:.45; cursor:wait; }
+  /* exactly two columns — auto-fit would open a third, empty track on wide
+     screens and squeeze both images into a third of the available width */
+  .stage { display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1fr); gap:14px; padding:16px; align-content:start; }
+  .statusbox { grid-column:1/-1; }
+  #status { color:var(--dim); font-size:12.5px; min-height:18px; }
+  .bar { height:7px; background:#22222a; border-radius:99px; margin-top:6px; overflow:hidden; display:none; }
+  .bar.on { display:block; }
+  .bar i { display:block; height:100%; width:0%; background:linear-gradient(90deg, var(--hot), #ffb340); border-radius:99px; transition:width .35s ease; }
+  .pane { background:var(--panel); border:1px solid var(--line); border-radius:10px; padding:10px; }
+  .pane h3 { margin:2px 4px 8px; font-size:11px; letter-spacing:.12em; color:var(--dim); text-transform:uppercase; }
+  .pane img { width:100%; height:auto; max-height:calc(100vh - 190px); object-fit:contain;
+              border-radius:6px; display:block; min-height:120px; background:#000; }
+  /* the on-screen result while a new render is in flight — so a repeat render
+     with identical settings (deterministic => identical pixels) is never
+     mistaken for "nothing happened" */
+  .pane img.stale { opacity:.3; filter:saturate(.35); }
+  .drop { border:1.5px dashed var(--line); border-radius:10px; padding:20px 12px; text-align:center; color:var(--dim); cursor:pointer; font-size:12.5px; word-break:break-all; }
+  .drop.armed { border-color:var(--hot); color:var(--text); }
+  .inline { display:flex; gap:8px; align-items:center; flex-wrap:wrap; }
+  .inline label { font-size:12.5px; }
+  .note { font-size:11px; color:var(--dim); margin-top:4px; word-break:break-all; }
+  .note.warn { color:#ffb340; border-left:2px solid #ffb340; padding-left:8px; }
+  footer { padding:8px 18px; color:#5c5c66; font-size:11px; border-top:1px solid var(--line); }
+  #settings { display:none; position:fixed; top:52px; right:14px; width:340px; max-width:calc(100vw - 28px);
+              background:var(--panel); border:1px solid var(--line); border-radius:12px; padding:16px; z-index:50;
+              box-shadow:0 12px 40px rgba(0,0,0,.55); }
+  #settings.open { display:block; }
+  #settings h2 { margin:0 0 10px; font-size:12px; letter-spacing:.12em; color:var(--dim); text-transform:uppercase; }
+  #settings .row label { flex:0 0 120px; }
+  @media (max-width: 860px) {
+    main { grid-template-columns:1fr; }
+    aside { max-height:none; border-right:none; border-bottom:1px solid var(--line); }
+  }
+  /* side-by-side stops helping once each column is narrower than ~330px */
+  @media (max-width: 760px) {
+    .stage { grid-template-columns:1fr; }
+    .pane img { max-height:none; }
+  }
+</style>
+</head>
+<body>
+<header>
+  <h1>H E R O <b>N</b></h1>
+  <span>Optical Bench — artistic simulation, not measurement</span>
+  <button id="gear" title="Settings">⚙</button>
+</header>
+
+<div id="settings">
+  <h2>Settings</h2>
+  <div class="row"><label>Save folder</label>
+    <input type="text" id="set-dir" placeholder="~/Pictures/Heron (empty = app only)" style="flex:1">
+    <button id="set-browse" title="Choose folder">Browse…</button></div>
+  <div class="note warn" id="set-dir-warn" style="display:none"></div>
+  <div class="row"><label>Bit depth</label><select id="set-bits" style="flex:1"><option value="8">8-bit PNG</option><option value="16">16-bit PNG</option></select></div>
+  <div class="row"><label>Working res</label><input type="number" id="set-res" min="768" max="1600" step="64" value="1280" style="width:100px"></div>
+  <div class="row"><label>Neural default</label><input type="checkbox" id="set-neural" checked></div>
+  <div class="row"><label>Draft default</label><input type="checkbox" id="set-draft"></div>
+  <button class="btn primary" id="set-save">Save settings</button>
+  <div class="note">Every render is kept in webapp/outputs/. The save folder additionally
+  receives a named copy (heron_&lt;date&gt;_&lt;instrument&gt;_&lt;preset&gt;.png). Working res
+  applies to the next render; changing it rebuilds the scene graph once.</div>
+</div>
+
+<main>
+  <aside>
+    <div class="group">
+      <div id="drop" class="drop">Drop a photo here or click to choose</div>
+      <input id="file" type="file" accept="image/*" style="display:none">
+    </div>
+
+    <div class="group">
+      <h2>Instrument</h2>
+      <div class="row"><label>Camera</label><select id="instrument"></select></div>
+      <div class="row"><label>Preset</label><select id="preset"></select></div>
+      <div class="note" id="preset-desc"></div>
+      <div class="row"><label>Palette</label><select id="palette"></select></div>
+    </div>
+
+    <div id="sliders"></div>
+
+    <div class="group">
+      <h2>Neural finish</h2>
+      <div class="inline"><input type="checkbox" id="neural" checked><label for="neural">Enable</label>
+        <input type="checkbox" id="draft"><label for="draft">Draft (faster, smaller)</label></div>
+      <div class="row"><label>Model</label><select id="nmodel"></select></div>
+      <div class="note" id="nmodel-note"></div>
+      <div class="row"><label>Strength</label><input type="range" id="nstr" min="0.30" max="0.70" step="0.01" value="0.52"><output id="nstr-o">0.52</output></div>
+      <div class="row"><label>Seed</label><input type="number" id="nseed" value="3" style="width:90px"><button id="dice" title="random seed">🎲</button></div>
+      <div class="note" id="neural-note"></div>
+      <div class="note">Renders are deterministic: the same settings and the same seed
+      always give a pixel-identical image. Change a dial or roll 🎲 to get a different one.</div>
+    </div>
+
+    <div class="group">
+      <h2>Advanced overrides</h2>
+      <textarea id="adv" placeholder="one per line, e.g.&#10;layerB.core_c=36&#10;layerC.mode=bos"></textarea>
+      <div class="note">Any engine key works — see the instrument's YAML.</div>
+    </div>
+
+    <button id="render" class="btn primary" disabled>Render</button>
+    <div class="note">First render of a new photo builds the scene graph (~40 s). After that: physics ≈ 4 s, neural ≈ 25 s (draft ≈ 13 s).</div>
+  </aside>
+
+  <section class="stage">
+    <div class="statusbox">
+      <div id="status">Upload a photo to begin.</div>
+      <div class="bar" id="bar"><i id="barfill"></i></div>
+    </div>
+    <div class="pane"><h3>Source</h3><img id="src" alt=""></div>
+    <div class="pane"><h3 id="outtitle">Result — hold click to compare</h3><img id="out" alt="">
+      <div class="note" id="timing"></div>
+      <a id="dl" class="btn" style="display:none; text-align:center; text-decoration:none;">Download result</a></div>
+  </section>
+</main>
+<footer>Heron · outputs are artistic simulation · engine: physics field → optional SDXL depth-ControlNet finish</footer>
+
+<script>
+// Per-instrument dial sets now live in webapp/dials.json and arrive with
+// /api/meta, so this UI and the Photoshop panel cannot drift apart.
+let INSTRUMENTS = {};
+
+const $ = id => document.getElementById(id);
+let META = null, imageId = null, lastOut = null;
+let renderCount = 0, rendering = false;
+
+function currentInstrument() { return $("instrument").value; }
+
+function buildSliders(inst) {
+  const cfg = INSTRUMENTS[inst];
+  const host = $("sliders");
+  host.innerHTML = "";
+  for (const [groupName, sliders] of Object.entries(cfg.groups)) {
+    const g = document.createElement("div"); g.className = "group";
+    g.innerHTML = `<h2>${groupName}</h2>`;
+    for (const s of sliders) {
+      const row = document.createElement("div"); row.className = "row";
+      row.innerHTML = `<label title="${s.key}">${s.label}</label>
+        <input type="range" data-key="${s.key}" min="${s.min}" max="${s.max}" step="${s.step}" value="${s.def}">
+        <output>${s.def}</output>`;
+      const inp = row.querySelector("input"), out = row.querySelector("output");
+      inp.addEventListener("input", () => out.textContent = inp.value);
+      g.appendChild(row);
+    }
+    host.appendChild(g);
+  }
+}
+
+function applyInstrument(inst) {
+  const cfg = INSTRUMENTS[inst];
+  const presets = META ? (META.instruments[inst] || {}) : {};
+  const names = Object.keys(presets).sort();
+  const def = names.includes(cfg.defPreset) ? cfg.defPreset : names[0] || "";
+  $("preset").innerHTML = names.map(p => `<option ${p === def ? "selected" : ""}>${p}</option>`).join("");
+  showPresetDesc();
+  if (cfg.palette === null) {
+    $("palette").innerHTML = `<option>—</option>`;
+    $("palette").disabled = true;
+  } else {
+    $("palette").disabled = false;
+    $("palette").innerHTML = (META ? META.palettes : []).map(p =>
+      `<option ${p === cfg.palette ? "selected" : ""}>${p}</option>`).join("");
+  }
+  buildSliders(inst);
+  const wantNeural = localStorage.getItem("heron.neural");
+  $("neural").checked = cfg.neural && (wantNeural === null ? true : wantNeural === "1");
+  $("neural-note").textContent = cfg.neural
+    ? "" : "Neural prompt for this instrument is experimental — physics-only is the tuned path.";
+}
+
+function showPresetDesc() {
+  const presets = META ? (META.instruments[currentInstrument()] || {}) : {};
+  $("preset-desc").textContent = presets[$("preset").value] || "";
+}
+
+let MODELS = [];
+fetch("/api/models").then(r => r.json()).then(m => {
+  MODELS = m.models;
+  const stored = localStorage.getItem("heron.model");
+  const sel = MODELS.some(x => x.ready && x.id === stored) ? stored : m.default;
+  $("nmodel").innerHTML = MODELS.map(x =>
+    `<option value="${x.id}" ${x.ready ? "" : "disabled"} ${x.id === sel ? "selected" : ""}>` +
+    `${x.label}${x.ready ? "" : " (needs setup)"}</option>`).join("");
+  showModelNote();
+});
+function showModelNote() {
+  const m = MODELS.find(x => x.id === $("nmodel").value);
+  $("nmodel-note").textContent = m ? m.note + " · switching models reloads (~30–60 s once)" : "";
+}
+$("nmodel") && ($("nmodel").onchange = () => {
+  localStorage.setItem("heron.model", $("nmodel").value); showModelNote();
+});
+
+fetch("/api/meta").then(r => r.json()).then(m => {
+  META = m;
+  INSTRUMENTS = m.dials || {};
+  const insts = Object.keys(INSTRUMENTS).filter(i => m.instruments[i]);
+  $("instrument").innerHTML = insts.map(i =>
+    `<option ${i === "thermograph" ? "selected" : ""}>${i}</option>`).join("");
+  applyInstrument("thermograph");
+}).catch(() => setStatus("Cannot reach the Heron server — start it with ./heron.sh"));
+$("instrument").addEventListener("change", () => applyInstrument(currentInstrument()));
+$("preset").addEventListener("change", showPresetDesc);
+
+$("nstr").addEventListener("input", () => $("nstr-o").textContent = $("nstr").value);
+$("dice").onclick = () => { $("nseed").value = Math.floor(Math.random() * 10000); };
+
+// ---- settings ----
+$("gear").onclick = () => $("settings").classList.toggle("open");
+function showDirWarning(text) {
+  const el = $("set-dir-warn");
+  el.textContent = text || "";
+  el.style.display = text ? "block" : "none";
+}
+fetch("/api/settings").then(r => r.json()).then(s => {
+  $("set-dir").value = s.save_dir || "";
+  $("set-bits").value = String(s.bit_depth || 8);
+  showDirWarning(s.save_dir_warning);
+});
+$("set-res").value = localStorage.getItem("heron.work_res") || "1280";
+$("set-draft").checked = localStorage.getItem("heron.draft") === "1";
+const storedNeural = localStorage.getItem("heron.neural");
+$("set-neural").checked = storedNeural === null ? true : storedNeural === "1";
+$("set-browse").onclick = async () => {
+  $("set-browse").disabled = true;
+  setStatus("A folder dialog has opened (it may appear behind other windows)…");
+  try {
+    const r = await fetch("/api/browse-folder", { method: "POST" });
+    const j = await r.json();
+    if (j.path) { $("set-dir").value = j.path; setStatus("Folder chosen — press Save settings."); }
+    else setStatus("Folder choice cancelled.");
+  } catch (e) { setStatus("Browse failed: " + e); }
+  finally { $("set-browse").disabled = false; }
+};
+$("set-save").onclick = async () => {
+  const r = await fetch("/api/settings", {
+    method: "POST", headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ save_dir: $("set-dir").value.trim(), bit_depth: parseInt($("set-bits").value, 10) }),
+  });
+  if (!r.ok) { setStatus("Settings error: " + (await r.text()).slice(0, 200)); return; }
+  const saved = await r.json();
+  localStorage.setItem("heron.work_res", $("set-res").value);
+  localStorage.setItem("heron.neural", $("set-neural").checked ? "1" : "0");
+  localStorage.setItem("heron.draft", $("set-draft").checked ? "1" : "0");
+  $("draft").checked = $("set-draft").checked;
+  if (INSTRUMENTS[currentInstrument()].neural) $("neural").checked = $("set-neural").checked;
+  showDirWarning(saved.save_dir_warning);
+  // keep the panel open when there is a warning to read — closing it would
+  // flash the message past unseen, which is how the /tmp save folder went
+  // unnoticed until the OS emptied it
+  if (!saved.save_dir_warning) $("settings").classList.remove("open");
+  setStatus(saved.save_dir_warning ? "Settings saved — see the warning above." : "Settings saved.");
+};
+$("draft").checked = localStorage.getItem("heron.draft") === "1";
+
+// ---- upload ----
+const drop = $("drop");
+drop.onclick = () => $("file").click();
+drop.ondragover = e => { e.preventDefault(); drop.classList.add("armed"); };
+drop.ondragleave = () => drop.classList.remove("armed");
+drop.ondrop = e => { e.preventDefault(); drop.classList.remove("armed"); if (e.dataTransfer.files[0]) uploadFile(e.dataTransfer.files[0]); };
+$("file").onchange = e => { if (e.target.files[0]) uploadFile(e.target.files[0]); };
+
+async function uploadFile(f) {
+  const fd = new FormData(); fd.append("file", f);
+  setStatus("Uploading…");
+  const r = await fetch("/api/upload", { method: "POST", body: fd });
+  if (!r.ok) { setStatus("Upload failed: " + await r.text()); return; }
+  const j = await r.json();
+  imageId = j.image_id;
+  $("src").src = j.url;
+  $("render").disabled = false;
+  drop.textContent = f.name + " — drop another to replace";
+  setStatus("Ready. First render builds the scene graph (~40 s), then it’s cached.");
+}
+
+function overrides() {
+  const o = {};
+  document.querySelectorAll("#sliders input[type=range][data-key]").forEach(i => o[i.dataset.key] = parseFloat(i.value));
+  if (!$("palette").disabled) o["layerC.palette"] = $("palette").value;
+  const res = parseInt(localStorage.getItem("heron.work_res") || "1280", 10);
+  if (res && res !== 1280) o["layerA.work_res"] = res;
+  for (const line of $("adv").value.split("\n")) {
+    const t = line.trim(); if (!t || !t.includes("=")) continue;
+    const [k, v] = t.split("="); const n = parseFloat(v);
+    o[k.trim()] = isNaN(n) ? v.trim() : n;
+  }
+  return o;
+}
+
+function setStatus(t) { $("status").textContent = t; }
+function endRender() {
+  rendering = false;
+  $("render").disabled = false;
+  setBar(null);
+  $("out").classList.remove("stale");
+  $("outtitle").textContent = "Result — hold click to compare";
+}
+function setBar(frac) {
+  const bar = $("bar");
+  if (frac == null) { bar.classList.remove("on"); $("barfill").style.width = "0%"; return; }
+  bar.classList.add("on");
+  $("barfill").style.width = Math.round(frac * 100) + "%";
+}
+
+$("render").onclick = async () => {
+  if (!imageId) return;
+  $("render").disabled = true;
+  rendering = true;
+  // Retire the previous result visually. Without this, a repeat render with
+  // unchanged settings produces identical pixels (by design) and looks like
+  // the button did nothing.
+  if (lastOut) {
+    $("out").classList.add("stale");
+    $("outtitle").textContent = "Previous result — rendering…";
+  }
+  $("dl").style.display = "none";
+  $("timing").textContent = "";
+  setBar(0.02);
+  setStatus("Starting…");
+  const t0 = Date.now();
+  try {
+    const r = await fetch("/api/render", {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        image_id: imageId,
+        instrument: currentInstrument(),
+        preset: $("preset").value, overrides: overrides(),
+        neural: $("neural").checked,
+        neural_strength: parseFloat($("nstr").value),
+        neural_seed: parseInt($("nseed").value || "3", 10),
+        neural_draft: $("draft").checked,
+        neural_model: $("nmodel").value,
+      }),
+    });
+    if (!r.ok) { setStatus("Render failed: " + (await r.text()).slice(0, 300)); endRender(); return; }
+    const { job_id } = await r.json();
+
+    const poll = setInterval(async () => {
+      let j;
+      try { j = await (await fetch("/api/job/" + job_id)).json(); }
+      catch (e) { return; }
+      const elapsed = ((Date.now() - t0) / 1000).toFixed(0);
+      setBar(j.progress ?? 0);
+      setStatus(`${j.stage} — ${elapsed} s`);
+      if (j.state === "done") {
+        clearInterval(poll);
+        lastOut = j.url;
+        $("out").src = j.url;
+        // stamp every result so consecutive renders are distinguishable even
+        // when the pixels are identical (deterministic engine)
+        let line = `#${++renderCount} · ${new Date().toLocaleTimeString()} · ` +
+          `physics ${j.timing.physics_s}s` +
+          (j.timing.neural_s ? ` · neural ${j.timing.neural_s}s` : "") +
+          (j.meta && j.meta.span_c ? ` · span ${j.meta.span_c.join("–")} °C` : "");
+        if (j.saved_to) line += ` · saved: ${j.saved_to}`;
+        if (j.save_warning) line += ` · ⚠ ${j.save_warning}`;
+        $("timing").textContent = line;
+        const dl = $("dl");
+        dl.href = j.url;
+        dl.download = `heron_${currentInstrument()}_${$("preset").value}_seed${$("nseed").value}.png`;
+        dl.style.display = "block";
+        setStatus(`Done in ${elapsed} s.`);
+        endRender();
+      } else if (j.state === "error") {
+        clearInterval(poll);
+        setStatus("Render failed: " + (j.error || "unknown error"));
+        $("timing").textContent = "⚠ this render failed — the image above is the previous result";
+        endRender();
+      }
+    }, 600);
+  } catch (e) { setStatus("Error: " + e); endRender(); }
+};
+
+const out = $("out");
+// hold-to-compare, but not while a render is in flight (the visible image is
+// the dimmed previous result then, and swapping it would be confusing)
+out.addEventListener("mousedown", () => { if (imageId && lastOut && !rendering) out.src = $("src").src; });
+["mouseup", "mouseleave"].forEach(ev => out.addEventListener(ev, () => { if (lastOut) out.src = lastOut; }));
+</script>
+</body>
+</html>

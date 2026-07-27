@@ -1,0 +1,45 @@
+# Project instructions & phase plans — local-only. These name absolute machine
+# paths and other private projects, so they must never reach the public repo
+# (CLAUDE.md was already purged from git history once for exactly this).
+/CLAUDE.md
+/documents/
+
+# Heron — never commit weights, caches, or venv
+.venv/
+__pycache__/
+*.pyc
+*.pyo
+.pytest_cache/
+.DS_Store
+
+# Radiance Graph caches (per §9: do not commit)
+.heron_graph/
+**/.heron_graph/
+
+# Model weights (loaded read-only from other projects — never vendored here)
+*.pth
+*.onnx
+*.safetensors
+*.mlmodel
+*.mlpackage
+*.gguf
+
+# Outputs / scratch
+out/
+outputs/
+*.png.tmp
+tests/golden/_actual/
+
+# webapp runtime data
+webapp/uploads/
+webapp/outputs/
+
+# user/runtime state
+webapp/settings.json
+neural/checkpoints/
+*.pt
+.DS_Store
+/tmp/
+
+# fetched Layer A models (never committed — see MODELS.md)
+/models/

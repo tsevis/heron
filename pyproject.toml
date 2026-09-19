@@ -32,3 +32,12 @@ include = ["heron*"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+
+# The suite imports `heron` AND `webapp` as top-level packages from the repo
+# root. `pip install -e .` only covers the first -- packages.find is scoped to
+# `heron*` -- and nothing put the root on sys.path, so `webapp` never
+# resolved. The green runs came from `python -m pytest`, which prepends the
+# working directory: a side effect, not a declaration. Plain `pytest` gave 22
+# collection errors, 21 of them `No module named 'heron'` and one
+# `No module named 'webapp'`.
+pythonpath = ["."]

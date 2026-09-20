@@ -1,0 +1,20 @@
+# Exact versions the suite is VERIFIED against, not researched minimums.
+#
+# requirements.txt and pyproject.toml declare floors. Floors are right for a
+# local install and wrong for a gate: unconstrained, a run a month from now
+# installs different versions, and a red result cannot be told apart from an
+# index that moved. Every version below was installed into a clean venv, which
+# then ran the full suite -- 331 passed, on 2026-09-19.
+#
+# opencv resolves to 5.x under `opencv-python>=4.9`. The suite passes on it.
+# That is measured, not a blessing: a sibling repo pins hard against OpenCV 5
+# because `LineSegmentDetector.detect()` changed output shape there. Nothing
+# in this suite exercises that call, so the pin here exists for comparability
+# between runs, not to dodge a known break.
+numpy==2.5.3
+opencv-python==5.0.0.93
+pillow==12.3.0
+scipy==1.18.1
+pyyaml==6.0.3
+typer==0.27.2
+pytest==9.1.1

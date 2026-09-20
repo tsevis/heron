@@ -1,0 +1,56 @@
+# This repository had no CI: no push and no pull request was ever mechanically
+# checked. The suite was green on one desktop and no other machine had run it.
+#
+# Two things were measured before this file could claim anything:
+#
+#   * The suite imports `heron` AND `webapp` from the repo root. `pip install
+#     -e .` covers only the first (packages.find is scoped to `heron*`), and
+#     nothing put the root on sys.path. Bare `pytest` gave 22 collection
+#     errors. pyproject.toml now declares `pythonpath = ["."]`.
+#   * libgl1 + libglib2.0-0: the opencv-python wheel links against them and
+#     `import cv2` fails on a bare runner without them.
+#
+# The `ai` extra (torch, transformers, onnxruntime, mediapipe) is deliberately
+# NOT installed. It is gigabytes for a gate, and the tests that need it are
+# written to work without it -- if that stops being true, this comment is the
+# thing that is wrong, not the workflow.
+name: tests
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  pytest:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: System packages
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq libgl1 libglib2.0-0
+
+      # -c constraints.txt on purpose: floors alone install whatever is newest
+      # that day, and a red run then cannot be told from an index that moved.
+      - name: Install
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt -c constraints.txt
+          pip install -c constraints.txt pytest
+
+      - name: Suite
+        run: pytest -q -ra -m "not local"

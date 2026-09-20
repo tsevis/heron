@@ -32,3 +32,22 @@ include = ["heron*"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+
+# The suite imports `heron` AND `webapp` as top-level packages from the repo
+# root. `pip install -e .` only covers the first -- packages.find is scoped to
+# `heron*` -- and nothing put the root on sys.path, so `webapp` never
+# resolved. The green runs came from `python -m pytest`, which prepends the
+# working directory: a side effect, not a declaration. Plain `pytest` gave 22
+# collection errors, 21 of them `No module named 'heron'` and one
+# `No module named 'webapp'`.
+pythonpath = ["."]
+
+# `local` marks a test that asserts something about THIS MACHINE rather than
+# about the code: that the model weights are already downloaded here, for
+# instance. Such a test is a useful desktop diagnostic and cannot ever pass on
+# a fresh runner, so CI excludes it BY NAME rather than letting it fail there
+# forever or skip there silently. A plain local `pytest` still runs it, which
+# is the only place it means anything.
+markers = [
+    "local: asserts a fact about this machine, not the code; excluded in CI",
+]

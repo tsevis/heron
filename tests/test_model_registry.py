@@ -129,8 +129,15 @@ def test_status_covers_every_spec():
         assert where is None or isinstance(where, str)
 
 
+@pytest.mark.local
 def test_this_machine_needs_no_downloads():
-    """CLAUDE.md §2.1: never download something already on this machine."""
+    """CLAUDE.md §2.1: never download something already on this machine.
+
+    Marked `local`: the subject is the machine, not the code. A fresh CI
+    runner has no weights and never will, so this can only ever be red there.
+    It is excluded by marker rather than by a skip, so that nobody reads a
+    skipped line in a CI log as a check that ran.
+    """
     assert registry.missing() == [], (
         f"would re-download {[s.role for s in registry.missing()]} despite local copies"
     )

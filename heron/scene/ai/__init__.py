@@ -6,7 +6,9 @@ missing, that channel keeps its classical value instead of crashing, honoring
 "AI enriches; it must never be a hard dependency" (§2.6).
 
 Models are loaded read-only from their registered local paths (§5) via
-``heron.core.device`` (MPS/CoreML). Nothing here downloads weights.
+``heron.core.device`` (MPS/CoreML). The depth, matte and SAM 3 loaders never
+download; MediaPipe Pose (the skeleton, run on every build) can fetch its pose file on first use
+with MediaPipe builds that still ship ``mp.solutions``.
 
 STATUS: implemented against the on-disk model formats; requires
 ``requirements-ai.txt`` installed and a validation pass (`scripts/smoke_models.py

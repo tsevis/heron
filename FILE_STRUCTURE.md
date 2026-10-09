@@ -17,8 +17,10 @@ uxp/  webapp/  cli.py        frontends — may call the engine
      neural/                 optional post-passes — heron/ NEVER imports this
 ```
 
-`heron/` is UI-agnostic and offline. It does not import FastAPI, UXP, or any
-diffusion runtime. Two tests enforce this (`tests/test_presets.py`), because it
+`heron/` is UI-agnostic. It does not import FastAPI, UXP, `neural/` or any
+diffusion runtime; its optional `--ai` models load from local files (see
+`MODELS.md` for the one exception). Two tests in `tests/test_presets.py` check
+the `neural/` and diffusion-runtime part, because it
 is the property that lets the same engine serve a CLI, a web app and a Photoshop
 panel without any of them knowing about each other.
 
@@ -26,12 +28,12 @@ panel without any of them knowing about each other.
 
 | Path | What it is |
 |---|---|
-| `heron/` | the engine package — the 4-layer stack, 94 files |
+| `heron/` | the engine package — the 4-layer stack |
 | `webapp/` | FastAPI service + static web UI |
 | `uxp/` | Photoshop panel (4 source files, no build step) |
 | `neural/` | optional finishers — SDXL/Z-Image img2img, GAN architectures |
 | `scripts/` | gallery, palette strips, contact sheets, model smoke tests |
-| `tests/` | 328 tests |
+| `tests/` | the test suite: run `.venv/bin/python -m pytest -q`; CI is `.github/workflows/tests.yml` |
 | `gallery/` | everything the README embeds |
 | `cli.py`, `heron.sh`, `Heron.command` | entry points |
 | `MODELS.md` | what the optional models buy, and how they are found |

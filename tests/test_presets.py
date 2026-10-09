@@ -189,7 +189,7 @@ def test_every_instrument_round_trips(instrument, preset, tmp_path):
 # ------------------------------------------------------- engine purity (§7.1)
 
 def test_engine_never_imports_neural():
-    """The phase's governing rule: the engine stays deterministic and offline."""
+    """The phase's governing rule: no physics render depends on a diffusion model."""
     offenders = []
     for path in (REPO / "heron").rglob("*.py"):
         text = path.read_text()

@@ -56,12 +56,17 @@ In this order, so an existing install always wins over a download:
 
 `models/` is gitignored. Weights are never committed.
 
-## The engine never downloads
+## The depth, matte and SAM 3 loaders do not download
 
-Model loaders pass `local_files_only=True`, and fetching is a separate explicit
+The depth and matte loaders pass `local_files_only=True`, SAM 3 is built from a
+local `sam3.pt` with `load_from_HF=False`, and fetching is a separate explicit
 script. An engine that quietly reaches for the network mid-render is neither
-offline nor deterministic, and both properties are load-bearing here: the same
-seed and parameters must give the same pixels, on a machine with no connection.
+offline nor deterministic: the same seed and parameters must give the same
+pixels, on a machine with no connection.
+
+One exception: every `--ai` scene build also runs MediaPipe Pose (used by the
+Fluoroscope skeleton), whatever the instrument, and MediaPipe versions with the legacy `mp.solutions` API download the
+pose model file on first use. If MediaPipe fails, the skeleton is skipped.
 
 If a model is missing, `--ai` falls back to the classical path for that channel.
 
@@ -80,4 +85,9 @@ If a model is missing, `--ai` falls back to the classical path for that channel.
 
 **Neural finishers** (`neural/`) are optional post-passes and are separate again.
 They read checkpoints from a local ComfyUI install read-only; the app lists what
-it finds and explains what it cannot run. Nothing is downloaded on your behalf.
+it finds and explains what it cannot run. No checkpoint is downloaded on your
+behalf; loading one can fetch configuration and tokenizer files, and style
+transfer downloads VGG19 weights through torchvision.
+
+The licences of the models the code names are listed in the README under
+[Model licences](README.md#model-licences).

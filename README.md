@@ -58,9 +58,13 @@ point `HERON_MODELS` at copies you already have. To also search other model
 collections read-only, list them in `HERON_EXTRA_MODEL_DIRS` (separated like
 `PATH`). See [MODELS.md](MODELS.md).
 
-The engine itself never downloads anything mid-render: loaders are
-`local_files_only`, because an offline deterministic engine that reaches for the
-network is neither.
+Heron's own loaders for depth, matte and SAM 3 read local files only
+(`local_files_only=True`; SAM 3 is built from a local `sam3.pt` with
+`load_from_HF=False`). Two things can still reach the network: every `--ai`
+scene build also runs MediaPipe Pose (used by the Fluoroscope skeleton), whatever
+the instrument, and MediaPipe versions that ship the legacy `mp.solutions` API download its pose model file on first use; the
+optional neural finishers fetch configuration and tokenizer files (no weights)
+and, for style transfer, VGG19 weights. See [Model licences](#model-licences).
 
 `heron.sh` starts the local web app and opens your browser automatically —
 that's the whole setup. (`Heron.command` does the same by double-click in
@@ -173,7 +177,9 @@ texture — individual hair strands, skin grain — reads as photographed rather
 than painted. The physics field is always the control signal; the network
 adds texture, it never invents geometry.
 
-This is entirely optional and entirely local — see [Neural finishers](#neural-finishers-optional) below.
+This is optional and runs on this machine; the checkpoints are read from disk, and
+loading one can fetch small configuration files. See
+[Neural finishers](#neural-finishers-optional) below.
 
 ---
 
@@ -233,7 +239,7 @@ python cli.py palette list
 python scripts/smoke_models.py
 ```
 
-32 presets across 8 instruments — run `python cli.py render --help` or open
+Every instrument ships named presets — run `python cli.py render --help` or open
 the web app's preset dropdown to see them with descriptions.
 
 ---
@@ -273,7 +279,7 @@ resolution, and neural/draft defaults:
 
 First render of a new photo builds its scene graph once (~40 s: depth, matte,
 SAM 3 materials). After that, physics re-renders in a couple of seconds —
-turn a dial, see the result, no AI reload. Renders are deterministic: same
+turn a dial, see the result, no AI reload. Given the same scene graph, renders are deterministic: same
 settings and same seed give a pixel-identical image, so the render stamp is
 how you tell a fresh result from the previous one.
 
@@ -312,15 +318,16 @@ See [`uxp/README.md`](uxp/README.md) for install detail and the UXP gotchas.
 ## Neural finishers (optional)
 
 Post-passes over Heron's physical output, in `neural/` — deliberately
-**outside** the engine, so `heron/` itself never imports them and stays
-deterministic and offline. The app's Model dropdown lists every self-contained
+**outside** the engine: `heron/` never imports `neural/`, so no physics render
+depends on a diffusion model. (The engine's own `--ai` path in `heron/scene/ai/`
+does load models; see [MODELS.md](MODELS.md).) The app's Model dropdown lists every self-contained
 checkpoint it finds in your local ComfyUI install and is honest about which
 ones it can actually run:
 
 | Module | What it does |
 |---|---|
 | `neural/controlnet_finisher.py` | SDXL + depth-ControlNet img2img, driving local checkpoints directly via diffusers |
-| `neural/zimage.py` | Z-Image Turbo, assembled entirely from on-disk components (transformer + text encoder + VAE) — no model download |
+| `neural/zimage.py` | Z-Image Turbo, assembled from on-disk weights (transformer + text encoder + VAE); only configuration and tokenizer files are downloaded |
 | `neural/style_transfer.py` | Gatys/AdaIN neural style transfer, with semantic region masking |
 | `neural/cyclegan.py` / `neural/pix2pixhd.py` | unpaired/paired RGB↔thermal GAN architectures — built and tested, but **untrained**: they need a real thermal-image dataset (`neural/datasets.py` points at KAIST/FLIR-ADAS) before they produce anything |
 
@@ -361,7 +368,7 @@ Photoshop panel. The test suite runs in CI; see
 | | |
 |---|---|
 | **Engine** | 8 instruments, 40 presets, one shared 4-layer stack |
-| **Resolution** | full-resolution physics — a 20 MP thermogram renders in ~30 s |
+| **Resolution** | full-resolution physics; scene understanding at 1280 px (see below) |
 | **Video** | `heron render-video`, temporally stabilised |
 | **Photoshop** | layered output, selection masking, document-resolution rendering |
 | **Presets** | self-contained, shareable, bit-exact on another machine |
@@ -388,6 +395,67 @@ Do not treat any Heron output as real thermography, medical imaging, or
 measurement. This project does not add cloud API calls to the engine, does
 not commit model weights, and does not touch other projects' model folders
 except read-only.
+
+## Model licences
+
+This repository contains no model weights, and `--no-ai` needs none. The table
+lists the third-party models the code names, with the licence as each source
+states it, read on 2026-10-09. Each model is a separate work under its own
+terms, which can change. This is not legal advice: read the full text before
+commercial use or redistribution, or ask the authors. The MIT licence below
+covers this repository's code only.
+
+| Model | Used for | Licence as stated by the source | Source |
+|---|---|---|---|
+| Depth Anything V2 Large (`depth-anything/Depth-Anything-V2-Large-hf`) | `--ai` depth, `heron/scene/ai/depth.py`; the default fetched by `scripts/fetch_models.py` | CC-BY-NC-4.0 (non-commercial). Upstream: the Small model is Apache-2.0, Base/Large/Giant are CC-BY-NC-4.0; Heron uses Large | [Hub](https://huggingface.co/depth-anything/Depth-Anything-V2-Large-hf), [upstream](https://github.com/DepthAnything/Depth-Anything-V2#license) |
+| ViTMatte base (`hustvl/vitmatte-base-composition-1k`) | `--ai` subject matte, `heron/scene/ai/matte.py`; fetched by `scripts/fetch_models.py` | Apache-2.0 on the Hub; the upstream code repository declares MIT | [Hub](https://huggingface.co/hustvl/vitmatte-base-composition-1k), [upstream](https://github.com/hustvl/ViTMatte) |
+| SAM 3 (`facebook/sam3`, gated) | `--ai` materials and subject seed, `heron/scene/ai/segment.py`; fetched by `scripts/fetch_models.py` | SAM License (Meta), see note 1 | [Hub](https://huggingface.co/facebook/sam3), [licence](https://github.com/facebookresearch/sam3/blob/main/LICENSE) |
+| MediaPipe Pose, `pose_landmark_heavy.tflite` | `--ai` Fluoroscope skeleton, `heron/physics/skeleton.py` | MediaPipe package: Apache-2.0. Licence of the model file: not verified | [PyPI](https://pypi.org/project/mediapipe/), see note 2 |
+| Qwen2.5-VL 3B via Ollama (`qwen2.5vl:3b`) | `_VLM_MODEL` in `heron/scene/ai/materials.py`; only with `use_vlm=True`, and the main pipeline passes `False` | Not settled: the upstream card states the Qwen Research License (non-commercial); the licence blob on Ollama is Apache-2.0 text | [Hub](https://huggingface.co/Qwen/Qwen2.5-VL-3B-Instruct), [Ollama](https://ollama.com/library/qwen2.5vl:3b) |
+| Z-Image Turbo (`Tongyi-MAI/Z-Image-Turbo`) | finisher, `neural/zimage.py`; weights read from ComfyUI, only config/tokenizer files downloaded | Apache-2.0 | [Hub](https://huggingface.co/Tongyi-MAI/Z-Image-Turbo) |
+| Qwen3-4B (`Qwen/Qwen3-4B`) | Z-Image text encoder, `neural/zimage.py`; as above | Apache-2.0 | [Hub](https://huggingface.co/Qwen/Qwen3-4B) |
+| Flux autoencoder, `ae.safetensors` | Z-Image VAE, `neural/zimage.py` | Not settled; depends on where the file came from. Hub licence fields: FLUX.1-schnell Apache-2.0, FLUX.1-dev non-commercial licence, `Comfy-Org/z_image_turbo` Apache-2.0. The Black Forest Labs README states that the autoencoder weights in its Hub repositories, dev included, are Apache-2.0 | [schnell](https://huggingface.co/black-forest-labs/FLUX.1-schnell), [dev](https://huggingface.co/black-forest-labs/FLUX.1-dev), [Comfy-Org](https://huggingface.co/Comfy-Org/z_image_turbo), [BFL](https://github.com/black-forest-labs/flux) |
+| SDXL checkpoint, default `juggernautXL_ragnarokBy.safetensors` | finishers, `neural/controlnet_finisher.py`, `neural/grid.py`, `neural/comfy_finisher.py`, `webapp/server.py` | Depends on the file, see note 3. Base SDXL 1.0: CreativeML Open RAIL++-M | [SDXL base](https://huggingface.co/stabilityai/stable-diffusion-xl-base-1.0), [Juggernaut XL](https://civitai.com/models/133005) |
+| SDXL depth ControlNet, default `diffusers_xl_depth_full.safetensors` | same finishers (`neural/grid.py` loads both) | This file name mirrors `diffusers/controlnet-depth-sdxl-1.0`: openrail++ | [Hub](https://huggingface.co/diffusers/controlnet-depth-sdxl-1.0), [mirror list](https://huggingface.co/lllyasviel/sd_control_collection) |
+| SD 1.5 family checkpoint | `webapp/server.py` treats any checkpoint without `xl` in its name as SD 1.5 | Depends on the file. Base SD 1.5: creativeml-openrail-m | [Hub](https://huggingface.co/stable-diffusion-v1-5/stable-diffusion-v1-5) |
+| Diffusers config downloads | `from_single_file` in the finishers fetches `.json`, `.txt` and `.model` files (no weights) from a base repository chosen by checkpoint type, e.g. SDXL base 1.0, `diffusers/controlnet-canny-sdxl-1.0`, SD 1.5 | openrail++ / openrail++ / creativeml-openrail-m (Hub licence fields) | [allow-patterns](https://github.com/huggingface/diffusers/blob/main/src/diffusers/loaders/single_file.py), [repo mapping](https://github.com/huggingface/diffusers/blob/main/src/diffusers/loaders/single_file_utils.py) |
+| RealVisXL V5.0 (`SG161222/RealVisXL_V5.0`) | development script `scripts/palette_strips.py` | openrail++ (Hub licence field) | [Hub](https://huggingface.co/SG161222/RealVisXL_V5.0) |
+| VGG19 (`VGG19_Weights.IMAGENET1K_V1`) | style transfer, `neural/style_transfer.py`; torchvision downloads it on first use | No per-weight licence; torchvision says pre-trained models may carry terms derived from their training data | [torchvision](https://github.com/pytorch/vision#pre-trained-model-license) |
+| Flux-2-Klein 9B | named by `webapp/server.py`, shown disabled, never loaded | Non-commercial (FLUX Non-Commercial License on the Hub, gated) | [Hub](https://huggingface.co/black-forest-labs/FLUX.2-klein-9B), [upstream](https://github.com/black-forest-labs/flux2) |
+| Qwen-Image 20B | named by `webapp/server.py`, shown disabled, never loaded | Apache-2.0 | [Hub](https://huggingface.co/Qwen/Qwen-Image) |
+| Mistral-3 text encoder | named only in the Flux-2-Klein note in `webapp/server.py`; never loaded | Not settled: the note names no exact model. Upstream FLUX.2 code loads `Qwen/Qwen3-8B-FP8` (Apache-2.0) for klein 9B and `mistralai/Mistral-Small-3.2-24B-Instruct-2506` (Apache-2.0) for FLUX.2 [dev] | [model table](https://github.com/black-forest-labs/flux2/blob/main/src/flux2/util.py), [encoders](https://github.com/black-forest-labs/flux2/blob/main/src/flux2/text_encoder.py) |
+
+Notes:
+
+1. SAM License, last updated 19 November 2025 (the GitHub text and the Hub copy
+   match). A partial summary, not the text: a non-exclusive, non-transferable,
+   royalty-free licence to use, copy, modify and redistribute, redistribution
+   only under the same agreement with a copy of it; no reverse engineering or
+   decompiling; the licensee must not be a target of trade controls; research publications must acknowledge SAM; ITAR
+   activities and end uses barred by trade controls (military, warfare,
+   nuclear, espionage, weapons) are excluded; the licence ends if the licensee
+   starts proceedings against Meta or any entity alleging that SAM or its
+   output infringes the licensee's rights; the licensee indemnifies Meta
+   against third-party claims arising from their use or distribution; Meta may
+   terminate for breach and may modify the agreement.
+2. With MediaPipe versions that ship the legacy `mp.solutions` API,
+   `Pose(model_complexity=2)` downloads `pose_landmark_heavy.tflite` from
+   `storage.googleapis.com/mediapipe-assets` when the file is not in the
+   installed package. A wheel without `mp.solutions` (0.10.35 was checked)
+   raises, and `skeleton.py` then skips the skeleton.
+3. The code expects `juggernautXL_ragnarokBy.safetensors`; Civitai lists the
+   Ragnarok file as `juggernautXL_ragnarok.safetensors`, so the release behind
+   a local file is not known. Civitai's API lists for this model
+   `allowNoCredit` false, `allowCommercialUse` `Image` and `RentCivit`,
+   `allowDifferentLicense` false (its field names, reported as listed).
+   Community checkpoints carry their own terms; the SDXL licence text states
+   that derivatives must carry its use-based restrictions.
+
+Not covered: models a user adds (any other checkpoint the web app finds in the
+ComfyUI folders), names that appear only in `scripts/smoke_models.py`, the
+datasets named in `neural/datasets.py` (none is downloaded, and no trained GAN
+weights exist), training-data terms, Python package licences other than
+MediaPipe's, and the status of generated images.
 
 ## License
 

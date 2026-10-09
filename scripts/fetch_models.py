@@ -5,9 +5,12 @@ every instrument must work with ``--no-ai`` (CLAUDE.md §2.6). These buy real
 depth and a clean subject matte, which is the difference between plausible form
 and a pseudo-depth prior.
 
-Deliberately a **separate, explicit step**. The engine never downloads anything
-mid-render — its loaders pass ``local_files_only=True`` — because an offline,
-deterministic engine that quietly reaches for the network is neither. So this
+Deliberately a **separate, explicit step**. The depth, matte and SAM 3 loaders
+never download mid-render (``local_files_only=True``; SAM 3 uses
+``load_from_HF=False``) because an offline, deterministic engine that quietly
+reaches for the network is neither. MediaPipe Pose, which ``--ai`` also runs,
+is not fetched here: legacy ``mp.solutions`` builds download their pose file on
+first use (see MODELS.md). So this
 script exists, it asks before spending bandwidth, and it skips anything already
 present.
 

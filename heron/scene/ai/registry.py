@@ -10,8 +10,9 @@ preferred over a download:
 
 1. ``HERON_MODELS`` — an explicit directory, for anyone who keeps models elsewhere.
 2. ``<repo>/models/<name>`` — where ``scripts/fetch_models.py`` puts things.
-3. the legacy machine-specific paths — so the original development machine keeps
-   working without re-downloading anything it already has.
+3. ``HERON_EXTRA_MODEL_DIRS`` — extra directories (``os.pathsep``-separated),
+   each searched by folder name, so a machine that already keeps models in some
+   other collection works without re-downloading anything it already has.
 4. the Hugging Face cache, by model id.
 
 **Nothing here downloads.** Resolution is read-only and the loaders keep
@@ -29,6 +30,9 @@ from pathlib import Path
 REPO_ROOT = Path(__file__).resolve().parents[3]
 PROJECT_MODELS = REPO_ROOT / "models"
 
+# Extra directories to search, ``os.pathsep``-separated (":" on macOS/Linux).
+EXTRA_DIRS_ENV = "HERON_EXTRA_MODEL_DIRS"
+
 
 @dataclass(frozen=True)
 class ModelSpec:
@@ -37,7 +41,9 @@ class ModelSpec:
     approx_mb: int
     purpose: str
     dir_name: str                 # folder name under models/
-    legacy: tuple[str, ...] = ()  # absolute paths on the original machine
+    # Other folder names this model goes by in a collection somebody already has,
+    # tried (after ``dir_name``) inside every HERON_EXTRA_MODEL_DIRS entry.
+    alt_names: tuple[str, ...] = ()
     required_for_ai: bool = True
     # File that proves the install is usable, not just a half-finished folder.
     marker: str = "config.json"
@@ -59,7 +65,7 @@ SPECS: tuple[ModelSpec, ...] = (
         approx_mb=1340,
         purpose="real depth — drives 3-D form, thickness and shading",
         dir_name="depth-anything-v2-large-hf",
-        legacy=("~/AI/ClaudeCode/mozaix/models/Depth-Anything-V2",),
+        alt_names=("Depth-Anything-V2",),
     ),
     ModelSpec(
         role="matte",
@@ -67,7 +73,7 @@ SPECS: tuple[ModelSpec, ...] = (
         approx_mb=390,   # measured: 387 MB on disk after fetch
         purpose="clean subject matte — removes the classical matte's edge leaks",
         dir_name="vitmatte-base-composition-1k",
-        legacy=("~/AI/ClaudeCode/mozaix/models/vitmatte-base-composition-1k",),
+        alt_names=("vitmatte-base-composition-1k",),
     ),
     ModelSpec(
         role="segment",
@@ -83,7 +89,7 @@ SPECS: tuple[ModelSpec, ...] = (
         approx_mb=3400,
         purpose="per-region materials — skin vs hair vs fabric vs metal",
         dir_name="sam3",
-        legacy=("~/AI/ClaudeCode/mozaix/models/sam3",),
+        alt_names=("sam3",),
         marker="sam3.pt",
         patterns=(),                     # full snapshot: it ships its own python package
         ignore=("model.safetensors", "assets/images/*", "*.gif", "*.mp4"),
@@ -94,6 +100,12 @@ SPECS: tuple[ModelSpec, ...] = (
 )
 
 BY_ROLE = {s.role: s for s in SPECS}
+
+
+def extra_model_dirs() -> list[Path]:
+    """Directories named by HERON_EXTRA_MODEL_DIRS, in order; empty if unset."""
+    raw = os.environ.get(EXTRA_DIRS_ENV, "")
+    return [Path(part).expanduser() for part in raw.split(os.pathsep) if part.strip()]
 
 
 def _hf_cache_has(hf_id: str) -> bool:
@@ -132,10 +144,11 @@ def resolve(role: str) -> str | None:
     if _is_installed(candidate, spec):
         return str(candidate)
 
-    for legacy in spec.legacy:
-        candidate = Path(legacy).expanduser()
-        if _is_installed(candidate, spec):
-            return str(candidate)
+    for extra in extra_model_dirs():
+        for name in (spec.dir_name, *spec.alt_names):
+            candidate = extra / name
+            if _is_installed(candidate, spec):
+                return str(candidate)
 
     if _hf_cache_has(spec.hf_id):
         return spec.hf_id

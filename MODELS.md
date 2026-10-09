@@ -49,8 +49,9 @@ In this order, so an existing install always wins over a download:
 
 1. `$HERON_MODELS/<name>` — a shared directory outside the repo
 2. `<repo>/models/<name>` — where `fetch_models.py` installs
-3. legacy machine-specific paths — so the original development machine keeps
-   working without re-downloading anything
+3. each directory in `$HERON_EXTRA_MODEL_DIRS` (separated like `PATH`), tried by
+   folder name — so a machine that already keeps models in another collection
+   works without re-downloading anything
 4. the Hugging Face cache, by model id
 
 `models/` is gitignored. Weights are never committed.

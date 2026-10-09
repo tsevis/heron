@@ -6,7 +6,7 @@ Heron uses it to localize scene materials (water, metal, glass, foliage, …) so
 each region gets its true LWIR behavior — the reflective mirror-water/metal case
 that gradient-map filters cannot do.
 
-Loaded read-only from the local repo (`mozaix/models/sam3`) with the local
+Loaded read-only from a local SAM 3 install (see `registry.py`) with the local
 checkpoint (no gated HF download, §2.1). Runs on **CPU**: SAM 3's decoder builds
 some tensors on CPU internally, which trips MPS device checks; since this is a
 once-per-image, cached Layer-A step, CPU is the robust choice. Degrades to None
@@ -26,7 +26,7 @@ import numpy as np
 from heron.color import srgb
 
 def _sam3_dir() -> Path | None:
-    """Where SAM 3 is installed, via the registry (env / repo models/ / legacy)."""
+    """Where SAM 3 is installed, via the registry (env / repo models/ / extra dirs)."""
     from heron.scene.ai import registry
 
     resolved = registry.resolve("segment")

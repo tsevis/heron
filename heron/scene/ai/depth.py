@@ -17,8 +17,9 @@ from heron.color import srgb
 from heron.core.device import get_device
 from heron.scene.ai import registry
 
-# Registry (§5): the mozaix Depth-Anything-V2 dir is the ORIGINAL repo (a .pth +
-# python package, not HF format), so we load the HF-cached Large-hf checkpoint.
+# Registry (§5): a folder named Depth-Anything-V2 in an extra model dir is usually
+# the ORIGINAL repo (a .pth + python package, not HF format), so we load the
+# HF-cached Large-hf checkpoint.
 # Both tiers use Large (Fast already gains speed from the engine's work_res
 # downscale); the Small-hf variant is NOT cached, and we must not download it
 # (§2.1). local_files_only enforces cache-only.
@@ -30,7 +31,7 @@ def _load(tier: str):
     import torch  # noqa: F401
     from transformers import AutoImageProcessor, AutoModelForDepthEstimation
 
-    # registry order: HERON_MODELS -> repo models/ -> legacy paths -> HF cache.
+    # registry order: HERON_MODELS -> repo models/ -> HERON_EXTRA_MODEL_DIRS -> HF cache.
     # None means nothing is installed; local_files_only makes that a clear error
     # rather than a silent download mid-render.
     source = registry.resolve("depth") or _HF_MODEL

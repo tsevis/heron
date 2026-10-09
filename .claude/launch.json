@@ -3,10 +3,10 @@
   "configurations": [
     {
       "name": "heron-web",
-      "runtimeExecutable": "/Users/tsevis/AI/ClaudeCode/heron/.venv/bin/python",
+      "runtimeExecutable": ".venv/bin/python",
       "runtimeArgs": [
         "-m", "uvicorn",
-        "--app-dir", "/Users/tsevis/AI/ClaudeCode/heron",
+        "--app-dir", ".",
         "webapp.server:app",
         "--host", "127.0.0.1",
         "--port", "8077"

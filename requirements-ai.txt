@@ -9,9 +9,9 @@ onnxruntime>=1.17
 mediapipe>=0.10
 
 # --- SAM 3 (per-region materials) runtime deps ---
-# SAM 3 itself is imported read-only from ~/AI/ClaudeCode/mozaix/models/sam3 via
-# sys.path (NOT pip-installed, so the mozaix dir stays untouched). These are the
-# packages its modules import at load time:
+# SAM 3 itself is imported read-only from its model directory (models/sam3, or
+# wherever the registry finds it) via sys.path (NOT pip-installed, so that
+# directory stays untouched). These are the packages its modules import at load time:
 einops
 timm>=1.0.17
 ftfy

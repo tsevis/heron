@@ -54,7 +54,9 @@ On first run Heron checks for the optional Layer A models (real depth, a clean
 subject matte, and SAM 3 for per-region materials) and offers to fetch them. **Say no and it
 still works** — the classical path needs no models at all, it is just coarser at
 finding the subject. Grab them later with `python scripts/fetch_models.py`, or
-point `HERON_MODELS` at copies you already have. See [MODELS.md](MODELS.md).
+point `HERON_MODELS` at copies you already have. To also search other model
+collections read-only, list them in `HERON_EXTRA_MODEL_DIRS` (separated like
+`PATH`). See [MODELS.md](MODELS.md).
 
 The engine itself never downloads anything mid-render: loaders are
 `local_files_only`, because an offline deterministic engine that reaches for the
@@ -332,7 +334,7 @@ python -m neural.run datasets            # where to get real thermal training da
 ## Testing
 
 ```bash
-.venv/bin/python -m pytest -q          # 185 tests
+.venv/bin/python -m pytest -q
 ```
 
 The **all-techniques matrix** (`tests/test_all_instruments.py`) is the
@@ -353,7 +355,8 @@ python scripts/palette_strips.py --no-neural --only kirlian    # one camera, phy
 ## Project status
 
 Working and in use: the eight-instrument engine, the CLI, the web app, and the
-Photoshop panel. 319 tests pass.
+Photoshop panel. The test suite runs in CI; see
+`.github/workflows/tests.yml`.
 
 | | |
 |---|---|

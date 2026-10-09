@@ -1,6 +1,6 @@
 """Model resolution on a machine that is not the one this was written on.
 
-The engine used to name absolute paths under `~/AI/ClaudeCode/mozaix/`. On a
+The engine used to name absolute paths on the machine it was written on. On a
 fresh clone every lookup failed, the AI path silently never engaged, and the
 classical fallback took over without saying so — a worse render and no
 explanation. These tests pin down the resolution order and, more importantly,
@@ -14,6 +14,7 @@ vacuously.
 
 from __future__ import annotations
 
+import os
 from pathlib import Path
 
 import pytest
@@ -29,11 +30,8 @@ def bare(monkeypatch, tmp_path):
     monkeypatch.setenv("HERON_MODELS", str(tmp_path / "nothing"))
     monkeypatch.setenv("HF_HOME", str(tmp_path / "no-cache"))
     monkeypatch.setattr(registry, "PROJECT_MODELS", tmp_path / "no-models")
-    # Legacy paths are absolute and machine-specific; blank them for this test.
-    monkeypatch.setattr(
-        registry, "SPECS",
-        tuple(type(s)(**{**s.__dict__, "legacy": ()}) for s in registry.SPECS))
-    monkeypatch.setattr(registry, "BY_ROLE", {s.role: s for s in registry.SPECS})
+    # The development machine may set HERON_EXTRA_MODEL_DIRS; a bare one does not.
+    monkeypatch.delenv(registry.EXTRA_DIRS_ENV, raising=False)
     return tmp_path
 
 
@@ -108,6 +106,20 @@ def test_env_override_wins_over_the_project_dir(bare, monkeypatch):
     monkeypatch.setenv("HERON_MODELS", str(elsewhere))
 
     assert registry.resolve("matte") == str(elsewhere / spec.dir_name)
+
+
+def test_extra_model_dirs_env_is_searched_in_order(bare, monkeypatch):
+    """HERON_EXTRA_MODEL_DIRS: os.pathsep-separated, each entry searched by name.
+
+    This is how a machine with models in its own private location is pointed
+    at them without that location appearing in the source. The first entry
+    holds nothing usable, so the match must come from the second.
+    """
+    first, second = bare / "first", bare / "second"
+    first.mkdir()
+    _hf_dir(second / "Depth-Anything-V2")   # folder name used by other collections
+    monkeypatch.setenv("HERON_EXTRA_MODEL_DIRS", f"{first}{os.pathsep}{second}")
+    assert registry.resolve("depth") == str(second / "Depth-Anything-V2")
 
 
 def test_a_directory_without_config_json_is_not_a_model(bare, monkeypatch):

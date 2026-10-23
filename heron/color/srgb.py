@@ -7,6 +7,8 @@ always return float32.
 
 from __future__ import annotations
 
+from functools import lru_cache
+
 import numpy as np
 
 _A = 0.055
@@ -21,6 +23,26 @@ def srgb_to_linear(x: np.ndarray) -> np.ndarray:
     low = x / 12.92
     high = ((x + _A) / (1.0 + _A)) ** 2.4
     return np.where(x <= _THRESH_DEC, low, high).astype(np.float32)
+
+
+def decode_uint(codes: np.ndarray) -> np.ndarray:
+    """Decode uint8/uint16 sRGB code values to linear float32 by table lookup.
+
+    Bit-identical to ``srgb_to_linear(codes / max_code)`` — the table is built
+    with that very function — but one gather instead of a ``pow`` per pixel.
+    """
+    codes = np.asarray(codes)
+    if codes.dtype not in (np.uint8, np.uint16):
+        raise TypeError(f"decode_uint needs uint8 or uint16 codes, got {codes.dtype}")
+    return _decode_table(codes.dtype.str)[codes]
+
+
+@lru_cache(maxsize=2)
+def _decode_table(dtype: str) -> np.ndarray:
+    top = np.iinfo(np.dtype(dtype)).max
+    table = srgb_to_linear(np.arange(top + 1, dtype=np.float32) / float(top))
+    table.setflags(write=False)
+    return table
 
 
 def linear_to_srgb(x: np.ndarray) -> np.ndarray:

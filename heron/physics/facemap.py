@@ -48,7 +48,7 @@ def _mask_axes(mask: np.ndarray):
     coords = np.stack([xs - cx, ys - cy]).astype(np.float64)
     cov = np.cov(coords)
     evals, evecs = np.linalg.eigh(cov)          # ascending eigenvalues
-    minor_v, major_v = evecs[:, 0], evecs[:, 1]
+    major_v = evecs[:, 1]                       # the minor axis follows from the angle
     a_across = 2.0 * float(np.sqrt(max(evals[0], 1e-6)))
     a_down = 2.0 * float(np.sqrt(max(evals[1], 1e-6)))
     # orient +v downward in image space (faces are near-upright in photographs)

@@ -92,14 +92,30 @@ def _to_binary_union(masks, scores, target_hw: tuple[int, int]) -> np.ndarray | 
     return union
 
 
+@lru_cache(maxsize=1)
+def _processor_or_error():
+    """The SAM 3 processor, or None — a failed load is tried and reported once.
+
+    ``lru_cache`` on the loader does not cache exceptions, so every caller (one
+    render asks three times) retried the full load and logged it again.
+    """
+    try:
+        return _load_processor()
+    except Exception as e:
+        print(f"[heron.ai.segment] SAM3 unavailable, using matte-only materials: {e}")
+        return None
+
+
 def segment_concepts(
     linear_rgb: np.ndarray, prompts: list[str]
 ) -> dict[str, np.ndarray] | None:
     """Return {prompt: (H,W) bool mask} for each concept SAM 3 finds, or None."""
+    processor = _processor_or_error()
+    if processor is None:
+        return None
     try:
         from PIL import Image
 
-        processor = _load_processor()
         h, w = linear_rgb.shape[:2]
         srgb8 = np.clip(srgb.linear_to_srgb(linear_rgb) * 255, 0, 255).astype(np.uint8)
         state = processor.set_image(Image.fromarray(srgb8))
@@ -112,5 +128,5 @@ def segment_concepts(
                 out[prompt] = mask
         return out
     except Exception as e:
-        print(f"[heron.ai.segment] SAM3 unavailable, using matte-only materials: {e}")
+        print(f"[heron.ai.segment] SAM3 failed on this image, using matte-only materials: {e}")
         return None

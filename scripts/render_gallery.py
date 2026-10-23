@@ -19,7 +19,6 @@ import numpy as np
 from PIL import Image
 
 from heron.color import srgb
-from heron.core import io
 from heron.engine import render_image
 
 ROOT = Path(__file__).resolve().parent.parent

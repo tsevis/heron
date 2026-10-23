@@ -18,13 +18,23 @@ reflective compositing) is the remaining 0.3 piece — see materials.py.
 
 from __future__ import annotations
 
+from collections.abc import Callable
+
 import numpy as np
 
 from heron.core.graph import RadianceGraph
 
 
-def enrich_graph(graph: RadianceGraph, linear_rgb: np.ndarray, opts) -> RadianceGraph:
+def enrich_graph(
+    linear_rgb: np.ndarray,
+    opts,
+    classical: Callable[[np.ndarray | None], RadianceGraph],
+) -> RadianceGraph:
     """Replace classical channels with model output where each model is available.
+
+    ``classical(matte)`` builds the classical graph around ``matte``, or around
+    the classical GrabCut matte when given None. It is called once SAM 3 has
+    run, so the GrabCut matte is only paid for when SAM 3 found no subject.
 
     Returns a new RadianceGraph (immutable-update style; CLAUDE.md coding-style).
     """
@@ -38,17 +48,18 @@ def enrich_graph(graph: RadianceGraph, linear_rgb: np.ndarray, opts) -> Radiance
     # concept is a cheap decoder query. The same masks seed the matte AND label
     # the materials, so the figure, its hair and the scene all agree.
     sam_masks = None
-    seed_mask = graph.matte
+    subject = None
     if getattr(opts, "segment_materials", True):
         from heron.scene.ai import segment as _seg
 
         sam_masks = _seg.segment_concepts(linear_rgb, _materials.ALL_CONCEPTS)
         subject = _materials.subject_mask(linear_rgb, masks=sam_masks)
-        if subject is not None:
-            seed_mask = subject
+
+    graph = classical(subject)
+    seed_mask = subject if subject is not None else graph.matte
 
     matte = _matte.estimate_matte(linear_rgb, fallback=seed_mask)
-    if matte is None and seed_mask is not graph.matte:
+    if matte is None and subject is not None:
         # ViTMatte was unusable — feather SAM 3's hard mask instead. A slightly
         # soft SAM 3 silhouette is far better than a broken alpha, which would
         # poison every downstream term (it multiplies most of the physics).

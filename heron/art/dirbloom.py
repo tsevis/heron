@@ -11,7 +11,6 @@ from __future__ import annotations
 import cv2
 import numpy as np
 
-from heron.color import srgb
 
 
 def structure_orientation(guide: np.ndarray, sigma: float):

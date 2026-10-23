@@ -50,7 +50,10 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           pip install -r requirements.txt -c constraints.txt
-          pip install -c constraints.txt pytest
+          pip install -c constraints.txt pytest fastapi httpx python-multipart ruff
+
+      - name: Lint
+        run: ruff check .
 
       - name: Suite
         run: pytest -q -ra -m "not local"

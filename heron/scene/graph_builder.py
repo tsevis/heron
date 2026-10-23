@@ -10,12 +10,12 @@ The result is cached per image under ``.heron_graph/``.
 from __future__ import annotations
 
 from dataclasses import dataclass, replace
+from functools import lru_cache
 from pathlib import Path
 
 import cv2
 import numpy as np
 
-from heron.color import srgb
 from heron.core import graph as graph_mod
 from heron.core.graph import RadianceGraph
 from heron.scene import delight as _delight
@@ -38,14 +38,14 @@ class GraphOptions:
 
         ``delight_strength`` is deliberately absent: it only affects ``albedo``,
         which is a leaf channel — no other Layer A output is derived from it.
-        Keying on it forced a full rebuild (the classical matte alone is ~15 s)
+        Keying on it forced a full rebuild (the classical matte alone was ~15 s then)
         every time an instrument with a different de-lighting setting ran on the
         same photo, to redo ~0.5 s of work. ``build_graph`` re-derives albedo on
         a cache hit instead.
         """
         mode = f"ai-{self.depth_tier}" if self.use_ai else "classical"
         seg = "+sam3" if (self.use_ai and self.segment_materials) else ""
-        return f"{mode}{seg}|res{self.work_res}|v5"
+        return f"{mode}{seg}|res{self.work_res}|v6"
 
 
 def normals_from_depth(depth: np.ndarray, strength: float = 2.0) -> np.ndarray:
@@ -72,10 +72,14 @@ def _classical_depth(matte: np.ndarray) -> np.ndarray:
     return np.clip(depth, 0.0, 1.0).astype(np.float32)
 
 
-def _build_classical(linear_rgb: np.ndarray, opts: GraphOptions) -> RadianceGraph:
+def _build_classical(linear_rgb: np.ndarray, opts: GraphOptions,
+                     matte: np.ndarray | None = None) -> RadianceGraph:
+    """The classical graph; ``matte`` replaces the GrabCut matte when given."""
     albedo, _shading = _delight.delight(linear_rgb, strength=opts.delight_strength)
     sal = _saliency.spectral_residual(linear_rgb)
-    matte = _matte.classical_matte(linear_rgb, sal=sal)
+    if matte is None:
+        matte = _matte.classical_matte(linear_rgb, sal=sal)
+    matte = np.asarray(matte, dtype=np.float32)
     depth = _classical_depth(matte)
     normals = normals_from_depth(depth)
     material_ids = np.zeros(linear_rgb.shape[:2], dtype=np.int32)  # all 'unknown'
@@ -89,6 +93,30 @@ def _build_classical(linear_rgb: np.ndarray, opts: GraphOptions) -> RadianceGrap
         material_names=("unknown",),
         meta={"ai_used": False, "delight_strength": opts.delight_strength},
     )
+
+
+@lru_cache(maxsize=4)
+def _loaded(path: str, mtime_ns: int, size: int) -> RadianceGraph:
+    graph = RadianceGraph.load(path)
+    for arr in (graph.depth, graph.normals, graph.albedo, graph.saliency,
+                graph.matte, graph.material_ids, *graph.extras.values()):
+        arr.setflags(write=False)  # shared between renders: never edit in place
+    return graph
+
+
+def _load_cached(cache_file: Path) -> RadianceGraph:
+    """The cached graph, held in memory after its first load from disk.
+
+    Each render gets its own ``meta`` and ``extras`` dicts; the arrays are
+    shared and read-only.
+    """
+    stat = cache_file.stat()
+    graph = _loaded(str(cache_file), stat.st_mtime_ns, stat.st_size)
+    return replace(graph, meta=dict(graph.meta), extras=dict(graph.extras))
+
+
+def clear_memo() -> None:
+    _loaded.cache_clear()
 
 
 def _with_delight(graph: RadianceGraph, linear_rgb: np.ndarray,
@@ -123,17 +151,20 @@ def build_graph(
         cache_file = graph_mod.cache_path(image_path, opts.signature())
         if cache_file.exists():
             try:
-                return _with_delight(RadianceGraph.load(cache_file), linear_rgb, opts)
+                return _with_delight(_load_cached(cache_file), linear_rgb, opts)
             except Exception:
                 pass  # corrupt cache -> rebuild
 
-    graph = _build_classical(linear_rgb, opts)
-
-    if opts.use_ai:
+    if not opts.use_ai:
+        graph = _build_classical(linear_rgb, opts)
+    else:
         try:
             from heron.scene import ai as _ai
 
-            graph = _ai.enrich_graph(graph, linear_rgb, opts)
+            graph = _ai.enrich_graph(
+                linear_rgb, opts,
+                classical=lambda matte: _build_classical(linear_rgb, opts, matte=matte),
+            )
         except ImportError as e:
             raise RuntimeError(
                 "AI mode requested but Layer A dependencies are unavailable. "

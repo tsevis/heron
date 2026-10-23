@@ -8,6 +8,7 @@ engine imports nothing above itself.
 from __future__ import annotations
 
 from dataclasses import dataclass, field
+from functools import lru_cache
 from pathlib import Path
 
 import cv2
@@ -17,6 +18,7 @@ from heron.core import io
 from heron.core.graph import RadianceGraph
 from heron.instruments import get_engine, load_instrument
 from heron.scene import GraphOptions, build_graph
+from heron.scene import graph_builder as _graph_builder
 from heron.scene.upsample import upsample_graph
 
 
@@ -29,6 +31,31 @@ class RenderResult:
 
     def save(self, path: str | Path, bit_depth: int = 8) -> Path:
         return io.write_image(path, self.image, bit_depth=bit_depth)
+
+
+@lru_cache(maxsize=2)
+def _decoded(path: str, mtime_ns: int, size: int) -> np.ndarray:
+    image = io.read_image(path)
+    image.setflags(write=False)  # shared between renders: never edit in place
+    return image
+
+
+def _read_source(path: str | Path) -> np.ndarray:
+    """The decoded source, kept in memory while the file is unchanged.
+
+    A service re-renders the same photo with new dials over and over; decoding
+    it again each time was a fixed cost on every one. Keyed on the file's
+    mtime and size, so a replaced file is read again.
+    """
+    resolved = Path(path).resolve()
+    stat = resolved.stat()
+    return _decoded(str(resolved), stat.st_mtime_ns, stat.st_size)
+
+
+def clear_memo() -> None:
+    """Forget every in-memory source and graph (tests; memory pressure)."""
+    _decoded.cache_clear()
+    _graph_builder.clear_memo()
 
 
 def _fit_working_res(image: np.ndarray, max_side: int) -> np.ndarray:
@@ -74,7 +101,7 @@ def render_image(
 
     a = cfg.get("layerA", {})
     work_res = int(a.get("work_res", 1280))
-    source_input = io.read_image(input_path)
+    source_input = _read_source(input_path)
     # Layer A's view of the scene, always bounded.
     source = _fit_working_res(source_input, work_res)
 
@@ -125,3 +152,4 @@ def dump_graph_channels(graph: RadianceGraph, out_dir: str | Path) -> list[Path]
     n = max(len(graph.material_names), 1)
     written.append(io.write_gray(out_dir / "materials.png", graph.material_ids.astype(np.float32) / n))
     return written
+

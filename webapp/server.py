@@ -15,6 +15,7 @@ import os
 import threading
 import time
 import uuid
+from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 
 import numpy as np
@@ -22,11 +23,13 @@ import numpy as np
 os.environ.setdefault("PYTORCH_ENABLE_MPS_FALLBACK", "1")
 
 from fastapi import FastAPI, File, HTTPException, Request, UploadFile
+from fastapi.concurrency import run_in_threadpool
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 
 from heron.color import palettes as _palettes
 from heron.core import io as hio
+from heron.core.graph import CACHE_DIRNAME
 from heron.engine import render_image
 from heron.instruments import available_instruments, list_presets
 from webapp import layers as weblayers
@@ -40,6 +43,12 @@ OUTPUTS.mkdir(exist_ok=True)
 app = FastAPI(title="Heron — Optical Bench")
 
 SETTINGS_FILE = ROOT / "settings.json"
+
+# What an upload is called (see upload/upload_raw). Anything else — an absolute
+# path, a "..", a subfolder — would let a request render any file on the disk.
+IMAGE_ID_PATTERN = r"^[0-9a-f]{12}\.(png|jpg|jpeg|tif|tiff|bmp|webp)$"
+MAX_JOBS = 200                     # job records kept for polling; oldest dropped
+FILE_MAX_AGE_S = 7 * 24 * 3600     # uploads, outputs and their graph caches
 DIALS_FILE = ROOT / "dials.json"
 
 
@@ -98,9 +107,9 @@ def neural_models() -> list[dict]:
     try:
         from neural.zimage import components_present
 
-        z_ok, z_why = components_present()
-    except Exception as e:
-        z_ok, z_why = False, str(e)
+        z_ok, _why = components_present()
+    except Exception:
+        z_ok = False
     if z_ok:
         out.append({"id": "zimage-turbo", "label": "Z-Image Turbo (on-disk)", "family": "zimage",
                     "ready": True,
@@ -149,10 +158,13 @@ _neural_key: str | None = None      # which checkpoint the hot pipeline serves
 _neural_family: str = "sdxl"
 _render_lock = threading.Lock()     # one render at a time
 _jobs: dict[str, dict] = {}         # job_id -> {state, progress, stage, ...}
+# One worker: renders were already serialised by _render_lock, but each request
+# started its own thread, so a burst of clicks parked a thread per click.
+_executor = ThreadPoolExecutor(max_workers=1, thread_name_prefix="heron-render")
 
 
 class RenderRequest(BaseModel):
-    image_id: str
+    image_id: str = Field(pattern=IMAGE_ID_PATTERN)
     instrument: str = "thermograph"
     preset: str | None = "translucent_glow"
     overrides: dict[str, float | int | str] = Field(default_factory=dict)
@@ -382,6 +394,7 @@ async def upload(file: UploadFile = File(...)):
         raise HTTPException(400, "unsupported image type")
     image_id = uuid.uuid4().hex[:12] + suffix
     (UPLOADS / image_id).write_bytes(await file.read())
+    await run_in_threadpool(_prune_runtime_folders)
     return {"image_id": image_id, "url": f"/uploads/{image_id}"}
 
 
@@ -409,6 +422,7 @@ async def upload_raw(request: Request):
 
     image_id = uuid.uuid4().hex[:12] + suffix
     (UPLOADS / image_id).write_bytes(data)
+    await run_in_threadpool(_prune_runtime_folders)
     return {"image_id": image_id, "url": f"/uploads/{image_id}", "bytes": len(data)}
 
 
@@ -436,10 +450,41 @@ def meta():
 def _start_job(req: RenderRequest) -> dict:
     if not (UPLOADS / req.image_id).exists():
         raise HTTPException(404, f"unknown image_id {req.image_id}")
+    os.utime(UPLOADS / req.image_id)  # pruning counts age from last use
     job_id = uuid.uuid4().hex[:10]
     _jobs[job_id] = {"state": "queued", "progress": 0.0, "stage": "queued"}
-    threading.Thread(target=_run_job, args=(job_id, req), daemon=True).start()
+    _trim_jobs()
+    _executor.submit(_run_job, job_id, req)
     return {"job_id": job_id}
+
+
+def _trim_jobs() -> None:
+    """Forget the oldest finished jobs beyond MAX_JOBS; never a queued one.
+
+    Request threads run this concurrently, hence ``pop(..., None)``.
+    """
+    finished = [k for k, j in list(_jobs.items()) if j.get("state") in ("done", "error")]
+    for stale in finished[:max(0, len(_jobs) - MAX_JOBS)]:
+        _jobs.pop(stale, None)
+
+
+def _prune_old_files(folder: Path, max_age_s: float) -> None:
+    """Delete files in ``folder`` and its graph cache older than ``max_age_s``."""
+    cutoff = time.time() - max_age_s
+    for directory in (folder, folder / CACHE_DIRNAME):
+        if not directory.is_dir():
+            continue
+        for f in directory.iterdir():
+            try:
+                if f.is_file() and f.stat().st_mtime < cutoff:
+                    f.unlink()
+            except OSError as e:
+                print(f"[heron.web] could not prune {f}: {e}")
+
+
+def _prune_runtime_folders() -> None:
+    for folder in (UPLOADS, OUTPUTS):
+        _prune_old_files(folder, FILE_MAX_AGE_S)
 
 
 @app.post("/api/render")
@@ -499,7 +544,7 @@ def set_settings(cfg: Settings):
             d = Path(cfg.save_dir).expanduser()
             d.mkdir(parents=True, exist_ok=True)
         except Exception as e:
-            raise HTTPException(400, f"cannot use save folder: {e}")
+            raise HTTPException(400, f"cannot use save folder: {e}") from e
     _save_settings({"save_dir": cfg.save_dir, "bit_depth": cfg.bit_depth})
     return get_settings()
 

@@ -118,7 +118,7 @@ def _grow_streamers(tips, dist_out, params: KirlianParams, seed: int) -> np.ndar
         return field[int(np.clip(y, 0, h - 1)), int(np.clip(x, 0, w - 1))]
 
     rng = rng_for(seed, "streamers", len(tips))
-    for ti, (x0, y0, outward, weight) in enumerate(tips):
+    for x0, y0, outward, weight in tips:
         stack = [(x0, y0, np.array(outward, np.float32), max_len * (0.6 + 0.6 * weight), 0)]
         path = []
         while stack:

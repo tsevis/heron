@@ -1,8 +1,9 @@
 """Image IO — the sRGB<->linear boundary of the engine.
 
 CLAUDE.md §2.3: sRGB decode on input, encode on output; internal buffers are
-float32 linear-light [0,1]. Loading is via Pillow (broad format support);
-writing is via OpenCV so we get real 16-bit PNG/TIFF output.
+float32 linear-light [0,1]. Loading is via OpenCV so 16-bit PNG/TIFF keep
+their depth (Pillow clips 16-bit grey and cannot hold 16-bit RGB), with Pillow
+as the fallback for anything OpenCV cannot read. Writing is via OpenCV.
 """
 
 from __future__ import annotations
@@ -33,13 +34,50 @@ def read_image_rgba(path: str | Path) -> tuple[np.ndarray, np.ndarray | None]:
 
     Alpha is a plain coverage channel — not light — so it is *not* linearized.
     """
-    with Image.open(path) as im:
-        im = im.convert("RGBA")
-        arr = np.asarray(im, dtype=np.float32) / 255.0
-    rgb_srgb, alpha = arr[..., :3], arr[..., 3]
-    rgb_linear = srgb.srgb_to_linear(rgb_srgb)
-    has_alpha = float(alpha.min()) < 1.0
-    return rgb_linear, (alpha.astype(np.float32) if has_alpha else None)
+    codes = _decode_with_opencv(path)
+    if codes is None:
+        with Image.open(path) as im:
+            codes = np.asarray(im.convert("RGBA"))
+    rgb_codes, alpha_codes = _split_channels(codes)
+
+    rgb_linear = srgb.decode_uint(rgb_codes)
+    if alpha_codes is None:
+        return rgb_linear, None
+    top = np.iinfo(alpha_codes.dtype).max
+    if int(alpha_codes.min()) == top:
+        return rgb_linear, None
+    return rgb_linear, (alpha_codes.astype(np.float32) / float(top)).astype(np.float32)
+
+
+def _decode_with_opencv(path: str | Path) -> np.ndarray | None:
+    """Decode at full bit depth (Pillow cannot hold 16-bit RGB), RGB(A) order.
+
+    Returns uint8/uint16 codes, or None for anything OpenCV cannot read or
+    stores in another sample type; the caller then falls back to Pillow.
+    """
+    try:
+        arr = cv2.imdecode(np.fromfile(str(path), dtype=np.uint8), cv2.IMREAD_UNCHANGED)
+    except (cv2.error, OSError, ValueError):
+        return None
+    if arr is None or arr.dtype not in (np.uint8, np.uint16):
+        return None
+    if arr.ndim == 3 and arr.shape[2] == 4:
+        return cv2.cvtColor(arr, cv2.COLOR_BGRA2RGBA)
+    if arr.ndim == 3 and arr.shape[2] == 3:
+        return cv2.cvtColor(arr, cv2.COLOR_BGR2RGB)
+    grey = arr[..., 0] if arr.ndim == 3 and arr.shape[2] == 1 else arr
+    # 8-bit grey goes to Pillow, which honours a PNG transparency key; OpenCV
+    # drops it. 16-bit grey stays here: Pillow clips it to black and white.
+    return grey if grey.ndim == 2 and grey.dtype == np.uint16 else None
+
+
+def _split_channels(codes: np.ndarray) -> tuple[np.ndarray, np.ndarray | None]:
+    """(H,W) grey, (H,W,3) RGB or (H,W,4) RGBA codes -> (RGB codes, alpha or None)."""
+    if codes.ndim == 2:
+        return np.repeat(codes[..., None], 3, axis=2), None
+    if codes.shape[2] == 4:
+        return codes[..., :3], codes[..., 3]
+    return codes, None
 
 
 def write_image(path: str | Path, linear_rgb: np.ndarray, bit_depth: int = 8) -> Path:

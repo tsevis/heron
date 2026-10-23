@@ -15,13 +15,40 @@ from scipy import ndimage
 
 from heron.color import srgb
 from heron.scene import saliency as _saliency
+from heron.scene.upsample import guided_upsample
+
+# GrabCut's cost grows with pixel count, and at the 1280 px working resolution it
+# was ~80% of a classical render. Its colour model needs far fewer pixels than
+# that, so it runs on a copy at most this long, and the mask is lifted back
+# against the full-resolution image so silhouettes still follow real edges.
+GRABCUT_LONG_SIDE = 512
+
+
+def _downscale(img: np.ndarray, long_side: int) -> np.ndarray:
+    h, w = img.shape[:2]
+    scale = long_side / max(h, w)
+    if scale >= 1.0:
+        return img
+    size = (max(1, round(w * scale)), max(1, round(h * scale)))
+    return cv2.resize(img, size, interpolation=cv2.INTER_AREA)
 
 
 def _grabcut_refine(linear_rgb: np.ndarray, weighted: np.ndarray) -> np.ndarray | None:
     """Snap the saliency estimate to the object region with GrabCut.
 
-    Returns a binary foreground mask, or None if GrabCut cannot seed reliably.
+    Returns a binary foreground mask at full resolution, or None if GrabCut
+    cannot seed reliably.
     """
+    small_rgb = _downscale(linear_rgb, GRABCUT_LONG_SIDE)
+    small_w = _downscale(weighted, GRABCUT_LONG_SIDE)
+    fg = _grabcut_at(small_rgb, small_w)
+    if fg is None or fg.shape == weighted.shape:
+        return fg
+    return guided_upsample(fg.astype(np.float32), linear_rgb) >= 0.5
+
+
+def _grabcut_at(linear_rgb: np.ndarray, weighted: np.ndarray) -> np.ndarray | None:
+    """GrabCut at the resolution it is given; binary mask or None."""
     h, w = weighted.shape
     srgb8 = np.clip(srgb.linear_to_srgb(linear_rgb) * 255, 0, 255).astype(np.uint8)
     bgr = cv2.cvtColor(srgb8, cv2.COLOR_RGB2BGR)

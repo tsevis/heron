@@ -1,7 +1,6 @@
 """End-to-end + graph tests for the classical (--no-ai) pipeline."""
 
 import numpy as np
-import pytest
 
 from heron.core import io
 from heron.core.graph import RadianceGraph

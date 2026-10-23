@@ -16,7 +16,6 @@ import numpy as np
 from heron import sensor
 from heron.color import palettes
 from heron.core.graph import RadianceGraph
-from heron.physics import curlnoise
 from heron.physics.schlieren import SchlierenParams, synthesize_schlieren
 
 

@@ -132,7 +132,7 @@ def stylize(
         target = {k: _adain(cf[k], sf[k], p.adain_alpha) for k in _STYLE_LAYERS}
         img = content.clone().requires_grad_(True)
         opt = torch.optim.Adam([img], lr=p.lr)
-        for i in range(max(30, p.steps // 6)):
+        for _ in range(max(30, p.steps // 6)):
             opt.zero_grad()
             f = _features(model, img)
             loss = sum(F.mse_loss(f[k], target[k]) for k in _STYLE_LAYERS)

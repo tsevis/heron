@@ -22,7 +22,6 @@ import numpy as np
 from PIL import Image, ImageDraw
 
 from heron.color import srgb
-from heron.core import io
 from heron.engine import render_image
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -30,6 +29,8 @@ PHOTOS = [
     ROOT / "tests/sample_images/portrait_john.jpg",
     ROOT / "tests/sample_images/portrait_1.jpg",
     ROOT / "tests/sample_images/portrait_2.jpg",
+    # CLAUDE.md §8 wants a metallic object too: metal must reflect, not glow
+    ROOT / "gallery/source/coins.jpg",
 ]
 
 COLUMNS = ["SOURCE", "HERON — PHYSICS", "HERON — HYBRID"]
@@ -64,7 +65,7 @@ def build(out_path: Path, tile: int, neural_strength: float, neural_seed: int) -
                               preset="translucent_glow", use_ai=True, seed=7)
         physics = result.image
 
-        print(f"   neural finish…")
+        print("   neural finish…")
         image = _fit(_pil(physics), params.max_side)
         depth = result.graph.depth
         import cv2

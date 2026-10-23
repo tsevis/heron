@@ -57,8 +57,7 @@ class VideoOptions:
 
 
 def _to_linear(frame_bgr: np.ndarray) -> np.ndarray:
-    rgb = cv2.cvtColor(frame_bgr, cv2.COLOR_BGR2RGB).astype(np.float32) / 255.0
-    return srgb.srgb_to_linear(rgb)
+    return srgb.decode_uint(cv2.cvtColor(frame_bgr, cv2.COLOR_BGR2RGB))
 
 
 def _to_bgr8(linear_rgb: np.ndarray) -> np.ndarray:

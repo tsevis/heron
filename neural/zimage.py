@@ -44,7 +44,6 @@ def _fetch_configs() -> tuple[Path, Path]:
 
 def load_pipeline(device: str, dtype):
     """Assemble ZImageImg2ImgPipeline from local weights + tiny configs."""
-    import torch
     from diffusers import (
         AutoencoderKL,
         FlowMatchEulerDiscreteScheduler,

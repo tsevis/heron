@@ -50,7 +50,8 @@ def check_existence() -> list[tuple[str, bool, str]]:
 
 def check_ollama() -> tuple[bool, list[str]]:
     try:
-        import urllib.request, json
+        import urllib.request
+        import json
 
         with urllib.request.urlopen("http://localhost:11434/api/tags", timeout=3) as r:
             data = json.load(r)

@@ -86,7 +86,7 @@ def draw(
     if p.status:
         _put(out, p.status, (int(10 * s), int(22 * s)), 0.5 * s, white, max(1, int(s)))
 
-    drawn = srgb.srgb_to_linear(out.astype(np.float32) / 255.0)
+    drawn = srgb.decode_uint(out)
     if p.opacity < 1.0:
         drawn = base * (1.0 - p.opacity) + drawn * p.opacity
     return np.clip(drawn, 0.0, 1.0).astype(np.float32)

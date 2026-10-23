@@ -8,7 +8,6 @@ the Radiance Graph convention. Degrades to None (classical proxy) on any error.
 from __future__ import annotations
 
 from functools import lru_cache
-from pathlib import Path
 
 import cv2
 import numpy as np

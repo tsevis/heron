@@ -10,7 +10,6 @@ any error (caller keeps the classical matte).
 from __future__ import annotations
 
 from functools import lru_cache
-from pathlib import Path
 
 import cv2
 import numpy as np

@@ -137,7 +137,7 @@ def test_unknown_role_raises():
 
 def test_status_covers_every_spec():
     assert len(registry.status()) == len(registry.SPECS)
-    for spec, where in registry.status():
+    for _spec, where in registry.status():
         assert where is None or isinstance(where, str)
 
 
